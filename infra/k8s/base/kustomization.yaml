@@ -11,6 +11,7 @@ resources:
   - frontend-service.yaml
   - rss-collect-cronjob.yaml
   - ingress.yaml
+  - cluster-issuer.yaml # requires cert-manager already installed on the cluster — see the file's header
   # secret.example.yaml and mongo-secret.example.yaml are templates, not applied —
   # create the real Secrets directly in the cluster (kubectl create secret ...,
   # see each file's header).
