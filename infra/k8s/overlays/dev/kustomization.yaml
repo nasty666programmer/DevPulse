@@ -30,6 +30,6 @@ patches:
       kind: Ingress
       name: devpulse-ingress
     patch: |-
-      - op: replace
+      - op: add
         path: /spec/rules/0/host
         value: devpulse.local

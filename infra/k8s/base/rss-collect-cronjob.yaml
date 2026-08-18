@@ -16,6 +16,7 @@ spec:
           containers:
             - name: rss-collect
               image: ghcr.io/nasty666programmer/devpulse-backend:latest # same image as backend-deployment
+              imagePullPolicy: IfNotPresent
               command: ["node", "dist/bin/collect.js"]
               envFrom:
                 - configMapRef:

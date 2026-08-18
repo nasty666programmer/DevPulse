@@ -17,6 +17,9 @@ spec:
           # Swap for the image your CI actually pushes (see docs/kubernetes-migration.md §9),
           # or a locally-imported tag (`k3s ctr images import ...`) if skipping a registry for now.
           image: ghcr.io/nasty666programmer/devpulse-backend:latest
+          # IfNotPresent so a locally-built image (no registry yet) isn't re-pulled
+          # on every restart just because the tag is :latest.
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           envFrom:

@@ -14,8 +14,10 @@ spec:
   # --disable servicelb --disable metrics-server are safe to trim for RAM).
   ingressClassName: traefik
   rules:
-    - host: devpulse.example.com # replace with the real domain once one is bought
-      http:
+    # No `host:` — matches any Host header, so this works against the bare server
+    # IP right away. Add `host: your-domain.com` back once a domain is bought
+    # (needed for the tls: block below to make sense too).
+    - http:
         paths:
           - path: /feed
             pathType: Prefix
