@@ -1,0 +1,69 @@
+name: Build, Push and Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/devpulse-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/devpulse-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.vars.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/DevPulse
+            git pull origin main
+            kubectl apply -k infra/k8s/overlays/prod
+            kubectl set image deployment/backend backend=${{ env.BACKEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
+            kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
+            kubectl set image cronjob/rss-collect rss-collect=${{ env.BACKEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
+            kubectl rollout status deployment/backend --timeout=120s
+            kubectl rollout status deployment/frontend --timeout=120s
