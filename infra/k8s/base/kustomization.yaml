@@ -3,11 +3,14 @@ kind: Kustomization
 
 resources:
   - configmap.yaml
+  - mongo-statefulset.yaml
+  - mongo-service.yaml
   - backend-deployment.yaml
   - backend-service.yaml
   - frontend-deployment.yaml
   - frontend-service.yaml
   - rss-collect-cronjob.yaml
   - ingress.yaml
-  # secret.example.yaml is a template, not applied — create the real Secret
-  # directly in the cluster (kubectl create secret ..., see the file's header).
+  # secret.example.yaml and mongo-secret.example.yaml are templates, not applied —
+  # create the real Secrets directly in the cluster (kubectl create secret ...,
+  # see each file's header).
