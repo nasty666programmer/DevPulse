@@ -1,0 +1,39 @@
+name: RC Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag-rc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next RC tag
+        id: rc
+        run: |
+          BASE_VERSION=$(node -p "require('./backend/package.json').version")
+          LAST_RC=$(git tag -l "v${BASE_VERSION}-rc.*" | sed "s/.*-rc\.//" | sort -n | tail -1)
+          NEXT_RC=$(( ${LAST_RC:-0} + 1 ))
+          echo "tag=v${BASE_VERSION}-rc.${NEXT_RC}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.rc.outputs.tag }}
+          git push origin ${{ steps.rc.outputs.tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rc.outputs.tag }}
+          name: ${{ steps.rc.outputs.tag }}
+          prerelease: true
+          generate_release_notes: true
