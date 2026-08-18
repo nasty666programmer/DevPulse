@@ -1,8 +1,7 @@
 name: Build, Push and Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch: # manual only — run from the Actions tab: "Build, Push and Deploy" → "Run workflow"
 
 permissions:
   contents: read
