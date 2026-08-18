@@ -6,7 +6,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?set MONGO_INITDB_ROOT_PASSWORD in a root .env file, see .env.example}
 
-  backend:
+  backend-service:
     build: ./backend
     env_file: ./backend/.env
     environment:
@@ -19,7 +19,7 @@ services:
 
   frontend:
     build: ./frontend
-    depends_on: [backend]
+    depends_on: [backend-service]
     ports: ["8080:80"]
 
   rss-collect:
