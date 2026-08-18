@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevPulse — макет интерфейса</title>
+<style>
+  /* ============ DESIGN TOKENS ============ */
+  :root,
+  html[data-theme="dark"] {
+    --bg: #0f1115;
+    --bg-elevated: #15181e;
+    --surface: #1a1d24;
+    --surface-hover: #20242c;
+    --border: #262b34;
+    --border-strong: #333944;
+    --text-primary: #e8eaed;
+    --text-secondary: #a8afba;
+    --text-meta: #767d89;
+    --text-disabled: #4b515c;
+    --accent: #ff8a5c;
+    --accent-hover: #ff9d76;
+    --accent-text-on: #1a0f08;
+    --danger: #f2555a;
+    --danger-bg: #2a1517;
+    --success: #4ade80;
+    --skeleton-base: #1c1f26;
+    --skeleton-shine: #262b34;
+    color-scheme: dark;
+  }
+
+  html[data-theme="light"] {
+    --bg: #faf9f7;
+    --bg-elevated: #ffffff;
+    --surface: #ffffff;
+    --surface-hover: #f5f3f0;
+    --border: #e6e2dc;
+    --border-strong: #d3cec5;
+    --text-primary: #1c1b1a;
+    --text-secondary: #4a4744;
+    --text-meta: #847e76;
+    --text-disabled: #b6b0a7;
+    --accent: #d6541a;
+    --accent-hover: #b8460f;
+    --accent-text-on: #fff7f2;
+    --danger: #c92a2f;
+    --danger-bg: #fdecec;
+    --success: #1f9254;
+    --skeleton-base: #eeebe6;
+    --skeleton-shine: #e2ddd4;
+    color-scheme: light;
+  }
+
+  :root {
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-read: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", ui-serif, serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 32px;
+    --space-8: 48px;
+    --space-9: 64px;
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  /* ============ RESET / BASE ============ */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  a { color: inherit; }
+  button { font-family: inherit; }
+  svg { display: block; }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-inline: var(--space-4);
+  }
+  @media (min-width: 640px) {
+    .wrap { padding-inline: var(--space-6); }
+  }
+
+  /* ============ HEADER ============ */
+  header.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+  }
+  header.app-header .wrap {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  @media (min-width: 640px) {
+    header.app-header .wrap { height: 68px; }
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font: 700 18px var(--font-ui);
+    letter-spacing: -0.01em;
+  }
+  .brand .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .last-updated {
+    font: 500 12px var(--font-mono);
+    color: var(--text-meta);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  @media (max-width: 420px) {
+    .last-updated { display: none; }
+  }
+
+  /* ============ BUTTONS ============ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 9px 16px;
+    font: 600 14px var(--font-ui);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-text-on);
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn-primary[disabled] {
+    opacity: 0.7;
+    cursor: default;
+  }
+  .btn-primary svg { animation: none; }
+  .btn-primary[disabled] svg { animation: spin 0.8s linear infinite; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 9px 16px;
+    font: 600 14px var(--font-ui);
+    cursor: pointer;
+  }
+  .btn-ghost:hover { background: var(--surface-hover); }
+
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ MAIN / FEED ============ */
+  main { padding-block: var(--space-6) var(--space-9); }
+
+  .section-label {
+    font: 600 11px var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-disabled);
+    margin: var(--space-8) 0 var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  /* ============ ARTICLE CARD ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  @media (min-width: 640px) {
+    .card { padding: var(--space-6); }
+  }
+  .card:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+  }
+  .card.is-expanded {
+    border-color: var(--border-strong);
+  }
+
+  .card-meta {
+    font: 500 12.5px var(--font-mono);
+    color: var(--text-meta);
+    letter-spacing: 0.01em;
+    margin-bottom: var(--space-2);
+  }
+  .card-meta .sep { margin: 0 6px; opacity: 0.6; }
+
+  .card-title {
+    font: 600 19px/1.35 var(--font-ui);
+    color: var(--text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.01em;
+  }
+  .card.is-expanded .card-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+  }
+
+  .card-excerpt {
+    font: 400 15px/1.55 var(--font-ui);
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--space-4);
+  }
+
+  .link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 600 14px var(--font-ui);
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .link-btn:hover { text-decoration: underline; }
+  .link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  .original-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: 500 13px var(--font-ui);
+    color: var(--text-meta);
+    text-decoration: none;
+  }
+  .original-link:hover { color: var(--text-primary); }
+
+  /* expanded article body */
+  .card-body {
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+  }
+  .card-body p {
+    font: 400 17px/1.7 var(--font-read);
+    color: var(--text-secondary);
+    margin: 0 0 var(--space-4);
+    max-width: 68ch;
+  }
+  .card-body p:last-child { margin-bottom: 0; }
+
+  /* ============ SKELETON ============ */
+  .skel-line {
+    height: 12px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-shine) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skel-line { animation: none; background: var(--skeleton-base); }
+  }
+  .skel-meta { width: 130px; height: 10px; margin-bottom: var(--space-3); }
+  .skel-title-1 { width: 88%; height: 16px; margin-bottom: 8px; }
+  .skel-title-2 { width: 55%; height: 16px; margin-bottom: var(--space-3); }
+  .skel-excerpt { width: 100%; height: 12px; margin-bottom: 6px; }
+  .skel-excerpt.short { width: 70%; margin-bottom: 0; }
+
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-block: var(--space-9);
+  }
+  .empty-state svg { color: var(--text-disabled); margin-bottom: var(--space-4); }
+  .empty-title {
+    font: 600 17px var(--font-ui);
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .empty-caption {
+    font: 400 14px/1.5 var(--font-ui);
+    color: var(--text-meta);
+    max-width: 320px;
+    margin: var(--space-2) 0 0;
+  }
+  .empty-state .btn-primary { margin-top: var(--space-5); }
+
+  /* ============ ERROR STATE ============ */
+  .error-box {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+  .error-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .error-head svg { color: var(--danger); flex-shrink: 0; }
+  .error-head span {
+    font: 600 15px var(--font-ui);
+    color: var(--text-primary);
+  }
+  .error-desc {
+    font: 400 14px/1.5 var(--font-ui);
+    color: var(--text-secondary);
+    margin: var(--space-2) 0 0;
+  }
+  .error-box .btn-ghost { margin-top: var(--space-4); }
+
+  footer.notice {
+    margin-top: var(--space-9);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border);
+    font: 400 12px var(--font-mono);
+    color: var(--text-disabled);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="wrap">
+    <div class="brand">
+      <span class="dot"></span>
+      DevPulse
+    </div>
+    <div class="header-right">
+      <span class="last-updated">обновлено 5 минут назад</span>
+      <button class="icon-btn" id="themeToggle" aria-label="Переключить тему" title="Переключить тему">
+        <!-- sun icon (shown in dark theme, click -> light) -->
+        <svg id="iconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.2"></circle>
+          <path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"></path>
+        </svg>
+        <!-- moon icon (shown in light theme, click -> dark) -->
+        <svg id="iconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"></path>
+        </svg>
+      </button>
+      <button class="btn btn-primary" id="refreshBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+          <path d="M21 3v6h-6"></path>
+        </svg>
+        <span id="refreshLabel">Обновить дайджест</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <p class="section-label">Лента</p>
+    <div class="feed">
+
+      <!-- CARD 1 -->
+      <article class="card">
+        <div class="card-meta">news.ycombinator.com<span class="sep">·</span>17 авг, 08:14<span class="sep">·</span>6 мин чтения</div>
+        <h2 class="card-title">Why We Rewrote Our Database Engine in Rust</h2>
+        <p class="card-excerpt">Three years ago our storage layer was a tangle of C++ pointers and undefined behavior. Here's what actually changed after the rewrite — and the two places where Rust made things harder, not easier…</p>
+        <div class="card-footer">
+          <button class="link-btn" aria-expanded="false">Читать дальше
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <a class="original-link" href="#" onclick="return false;">Оригинал
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- CARD 2 - EXPANDED -->
+      <article class="card is-expanded">
+        <div class="card-meta">reddit.com/r/programming<span class="sep">·</span>17 авг, 07:02<span class="sep">·</span>4 мин чтения</div>
+        <h2 class="card-title">The Hidden Cost of Premature Abstraction</h2>
+        <div class="card-body">
+          <p>Every codebase has that one interface with a single implementation, built "for flexibility later." Later rarely comes — and when it does, the abstraction is usually wrong for the new case anyway, so it gets bypassed or ripped out.</p>
+          <p>The author argues for a simple discipline: write the concrete thing twice before you extract an abstraction. Duplication is cheap to delete; the wrong abstraction is expensive to unwind, because by the time you notice it's wrong, four other modules already depend on its shape.</p>
+          <p>There's a good concrete example in the piece — a payments module that grew a <code>PaymentStrategy</code> interface for a single provider, then had to grow three more interfaces just to shoehorn a second provider into the original shape instead of adapting the abstraction itself.</p>
+          <p>Takeaway that stuck with me: abstractions should be discovered from real duplication, not designed in anticipation of it.</p>
+        </div>
+        <div class="card-footer">
+          <button class="link-btn" aria-expanded="true">Свернуть
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg>
+          </button>
+          <a class="original-link" href="#" onclick="return false;">Оригинал
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- CARD 3 -->
+      <article class="card">
+        <div class="card-meta">nodeweekly.com<span class="sep">·</span>16 авг, 19:40<span class="sep">·</span>5 мин чтения</div>
+        <h2 class="card-title">Node.js 22 LTS: What Changed Under the Hood</h2>
+        <p class="card-excerpt">A quieter release than usual on the surface, but the V8 bump and the built-in WebSocket client are the two changes worth actually reading the changelog for. Here's a breakdown of what's stable versus experimental…</p>
+        <div class="card-footer">
+          <button class="link-btn" aria-expanded="false">Читать дальше
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <a class="original-link" href="#" onclick="return false;">Оригинал
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- CARD 4 -->
+      <article class="card">
+        <div class="card-meta">dev.to<span class="sep">·</span>16 авг, 14:22<span class="sep">·</span>8 мин чтения</div>
+        <h2 class="card-title">Debugging a Memory Leak in Production: A Postmortem</h2>
+        <p class="card-excerpt">RSS climbed steadily for six days before anyone noticed. The culprit wasn't a forgotten event listener — it was a cache with no eviction policy that only misbehaved under a specific traffic shape. Full timeline and heap snapshots inside…</p>
+        <div class="card-footer">
+          <button class="link-btn" aria-expanded="false">Читать дальше
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <a class="original-link" href="#" onclick="return false;">Оригинал
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- CARD 5 -->
+      <article class="card">
+        <div class="card-meta">lobste.rs<span class="sep">·</span>16 авг, 09:11<span class="sep">·</span>3 мин чтения</div>
+        <h2 class="card-title">TypeScript 5.6: Stricter Narrowing and What It Means for You</h2>
+        <p class="card-excerpt">The new control-flow narrowing for closures fixes a footgun that's been open since TS 2.0 — but it will also surface latent bugs in code that relied on the old, looser behavior. Migration notes and a codemod link…</p>
+        <div class="card-footer">
+          <button class="link-btn" aria-expanded="false">Читать дальше
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <a class="original-link" href="#" onclick="return false;">Оригинал
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"></path></svg>
+          </a>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- ================= EMPTY STATE DEMO ================= -->
+    <p class="section-label">Состояние: пусто</p>
+    <div class="card">
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5L6 3h12l3 5.5"></path>
+          <path d="M3 8.5h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z"></path>
+          <path d="M3 8.5l3.2 5H9a1 1 0 0 1 1 .8c.2.9 1 1.7 2 1.7s1.8-.8 2-1.7a1 1 0 0 1 1-.8h2.8l3.2-5"></path>
+        </svg>
+        <h3 class="empty-title">Новостей пока нет</h3>
+        <p class="empty-caption">Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников.</p>
+        <button class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path>
+          </svg>
+          Обновить дайджест
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= LOADING / SKELETON DEMO ================= -->
+    <p class="section-label">Состояние: загрузка</p>
+    <div class="feed">
+      <div class="card">
+        <div class="skel-line skel-meta"></div>
+        <div class="skel-line skel-title-1"></div>
+        <div class="skel-line skel-title-2"></div>
+        <div class="skel-line skel-excerpt"></div>
+        <div class="skel-line skel-excerpt"></div>
+        <div class="skel-line skel-excerpt short"></div>
+      </div>
+      <div class="card">
+        <div class="skel-line skel-meta"></div>
+        <div class="skel-line skel-title-1"></div>
+        <div class="skel-line skel-title-2"></div>
+        <div class="skel-line skel-excerpt"></div>
+        <div class="skel-line skel-excerpt"></div>
+        <div class="skel-line skel-excerpt short"></div>
+      </div>
+    </div>
+
+    <!-- ================= ERROR STATE DEMO ================= -->
+    <p class="section-label">Состояние: ошибка</p>
+    <div class="error-box">
+      <div class="error-head">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="9.3"></circle>
+          <path d="M12 7.5v5.5" stroke-linecap="round"></path>
+          <circle cx="12" cy="16.3" r="0.9" fill="currentColor" stroke="none"></circle>
+        </svg>
+        <span>Не удалось загрузить дайджест</span>
+      </div>
+      <p class="error-desc">Сервер недоступен. Проверьте, что backend запущен на порту 4000, и повторите попытку.</p>
+      <button class="btn-ghost">Повторить</button>
+    </div>
+
+    <footer class="notice">DevPulse · статический макет дизайна · design/mockup.html</footer>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var toggle = document.getElementById('themeToggle');
+    var sun = document.getElementById('iconSun');
+    var moon = document.getElementById('iconMoon');
+
+    function applyIcons(theme) {
+      if (theme === 'light') {
+        sun.style.display = 'none';
+        moon.style.display = 'block';
+      } else {
+        sun.style.display = 'block';
+        moon.style.display = 'none';
+      }
+    }
+
+    applyIcons(root.getAttribute('data-theme') || 'dark');
+
+    toggle.addEventListener('click', function () {
+      var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      var next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      applyIcons(next);
+    });
+
+    // Cosmetic demo of the "Обновить дайджест" loading state — no real network call.
+    var refreshBtn = document.getElementById('refreshBtn');
+    var refreshLabel = document.getElementById('refreshLabel');
+    refreshBtn.addEventListener('click', function () {
+      if (refreshBtn.disabled) return;
+      refreshBtn.disabled = true;
+      var prev = refreshLabel.textContent;
+      refreshLabel.textContent = 'Обновляем…';
+      setTimeout(function () {
+        refreshBtn.disabled = false;
+        refreshLabel.textContent = prev;
+      }, 1600);
+    });
+
+    // Expand/collapse demo for non-expanded cards (purely visual, first card only for illustration)
+    document.querySelectorAll('.link-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.card');
+        var expanded = btn.getAttribute('aria-expanded') === 'true';
+        // In this static mockup only card #2 ships full body markup;
+        // this just toggles the visual "expanded" affordance for demonstration.
+        card.classList.toggle('is-expanded');
+        btn.setAttribute('aria-expanded', String(!expanded));
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
