@@ -144,13 +144,21 @@ volumes:
 
 ## 5. Kubernetes-манифесты — структура репозитория
 
+Реализовано (отличается от черновика ниже одной деталью: Dockerfile'ы лежат прямо в
+`backend/`/`frontend/`, а не в отдельном `infra/docker/` — так они рядом с кодом, который
+собирают, и `docker build ./backend` работает без `-f`):
+
 ```
+backend/
+  Dockerfile
+  .dockerignore
+frontend/
+  Dockerfile
+  .dockerignore
+  nginx.conf                  # SPA fallback + proxy /feed,/rss → backend (для compose)
+docker-compose.yml             # в корне репо, рядом с dev.sh
+.env.example                   # MONGO_INITDB_ROOT_* для docker-compose
 infra/
-  docker/
-    backend.Dockerfile
-    frontend.Dockerfile
-    frontend-nginx.conf
-  docker-compose.yml
   k8s/
     base/
       backend-deployment.yaml
@@ -164,9 +172,9 @@ infra/
       kustomization.yaml
     overlays/
       dev/
-        kustomization.yaml      # 1 реплика, resource limits поменьше
+        kustomization.yaml      # 1 реплика, resource limits поменьше — для kind/minikube
       prod/
-        kustomization.yaml      # N реплик, HPA, свой ingress host/TLS
+        kustomization.yaml      # replicas: 2 уже в base, тут только прод-специфика (домен/TLS)
 ```
 
 Kustomize (base + overlays) — чтобы не дублировать манифесты между окружениями; альтернатива
@@ -187,18 +195,31 @@ Helm, если понадобятся параметризуемые чарты 
   `RSS_CRON_SCHEDULE`), `concurrencyPolicy: Forbid`, `restartPolicy: OnFailure`,
   использует тот же backend-образ + тот же `backend-secret`/`backend-config`.
 - **Ingress**: один host, path-routing `/` → frontend-service, `/feed`, `/rss` →
-  backend-service; TLS через `cert-manager` (Let's Encrypt).
+  backend-service. `ingressClassName: traefik` — это встроенный в k3s контроллер, отдельно
+  ingress-nginx НЕ ставим (при установке k3s не передавать `--disable traefik`, только
+  `--disable servicelb --disable metrics-server` безопасны для экономии RAM). TLS через
+  `cert-manager` (Let's Encrypt) — пока закомментирован в `ingress.yaml`, включить, когда
+  будет куплен домен.
 
-## 6. Что нужно доделать в коде перед этим (пререквизиты)
+## 6. Что нужно доделать в коде перед этим (пререквизиты) — ГОТОВО
 
-- [ ] `GET /health` в backend — проверяет `mongoose.connection.readyState`, отдаёт 200/503.
-      Нужен для liveness/readiness проб. (Уже был TODO на это в `index.ts`.)
-- [ ] `bin/collect.ts` — CLI-точка входа для CronJob (см. §2), по образцу `bin/extract.ts`.
-- [ ] Флаг `ENABLE_IN_PROCESS_SCHEDULER` (default `true` для локальной разработки) вокруг
+- [x] `GET /health` в backend — проверяет `mongoose.connection.readyState`, отдаёт 200/503.
+      `src/routes/health.ts` + `src/controller/health/index.ts`.
+- [x] `bin/collect.ts` — CLI-точка входа для CronJob (см. §2), по образцу `bin/extract.ts`.
+      Проверено вживую (реальный сбор RSS + запись в Mongo, `exit code 0`).
+- [x] Флаг `ENABLE_IN_PROCESS_SCHEDULER` (default `true` для локальной разработки) вокруг
       вызова `schedulerService.start()` в `index.ts`.
-- [ ] `Dockerfile` для `backend/` и `frontend/`, `.dockerignore` в обеих папках.
-- [ ] Graceful shutdown в `index.ts` (`SIGTERM` → `server.close()` + `mongoose.disconnect()`)
-      — иначе Kubernetes будет убивать под жёстко при каждом рестарте/деплое.
+- [x] `Dockerfile` для `backend/` и `frontend/`, `.dockerignore` в обеих папках. Оба образа
+      собраны и прогнаны локально через `docker compose up` — health/фронтенд/nginx-proxy
+      на `/feed` подтверждены `curl`.
+- [x] Graceful shutdown в `index.ts` (`SIGTERM` → `server.close()` + `mongoose.disconnect()`).
+      Логика на месте; сам SIGTERM физически не проверить на Windows (нет POSIX-сигналов) —
+      сработает штатно в Linux-контейнере/k8s.
+- [x] Заодно исправлен скрытый баг в `bootstrap.ts`: раньше подключение к Mongo шло через
+      одноразовый `new MongoDB()` мимо DI-контейнера и не дожидалось коннекта — `bootstrap()`
+      теперь `async`, резолвит DI-синглтон `mongo` и делает `await mongo.connect()`. Это и
+      чинит health-check (без этого он мог отвечать раньше реального коннекта), и делает
+      `bin/collect.ts` надёжным (гарантированно подключён перед `collect()`).
 
 ## 7. MongoDB: self-hosted или managed
 
@@ -211,21 +232,18 @@ Helm, если понадобятся параметризуемые чарты 
 Для личного pet-проекта уровня DevPulse — начать с self-hosted StatefulSet, при желании
 позже мигрировать на managed без изменений в коде (меняется только `MONGO_URI` в Secret).
 
-## 8. Хостинг: dev/prod-серверы (Hetzner Cloud)
+## 8. Хостинг: прод-сервер (Hetzner Cloud) — заказан, уже оформлено
 
-Провайдер — **Hetzner Cloud** (выбран по цене; для остальных вариантов см. сравнение
-в отдельной переписке — AWS/DigitalOcean заметно дороже за те же ресурсы). Оплата в EUR,
-нужна карта не из РФ.
+Провайдер — **Hetzner Cloud** (выбран по цене; AWS/DigitalOcean заметно дороже за те же
+ресурсы, см. сравнение в переписке). Оплата в EUR, нужна карта не из РФ.
 
-Минимальная конфигурация — два отдельных сервера, оба на самом дешёвом сейчас плане
-**CX22** (2 vCPU, 4 GB RAM, 40 GB NVMe, 20 TB трафика, €3.79/мес каждый, курс EUR/USD
-~1.16 на август 2026 → ~$4.4/мес за сервер):
+**Решение по масштабу:** отдельный dev-сервер в облаке не нужен — проект на 6 пользователей
+(себя + ~5 человек), локальной проверки через `docker compose up` (§4) достаточно перед
+деплоем на прод. Один сервер:
 
 | Сервер | Роль | Что на нём крутится | Цена/мес |
 |---|---|---|---|
-| **dev** | разработка/стейджинг | `docker compose up` из §4 (mongo + backend + frontend), без k8s | €3.79 (~$4.4) |
-| **prod** | production | self-managed k3s (однонодовый, без managed control plane) — backend `replicas: 2` из §5, frontend, self-hosted MongoDB на том же узле | €3.79 (~$4.4) |
-| **Итого** | | | **€7.58/мес (~$8.8/мес)** |
+| **prod** | production | self-managed k3s (однонодовый, без managed control plane) — backend `replicas: 2` из §5, frontend, self-hosted MongoDB на том же узле | **CX22** (2 vCPU/4GB): €3.79 (~$4.4) |
 
 Почему так дёшево:
 - **Никакого managed Kubernetes** (EKS/GKE и т.п.) — control plane поднимается сами
@@ -260,16 +278,26 @@ Helm, если понадобятся параметризуемые чарты 
 
 ## 10. Порядок миграции (чек-лист)
 
-- [ ] §6: health-check, `bin/collect.ts`, флаг планировщика, graceful shutdown
-- [ ] Dockerfile'ы для backend и frontend, локальная сборка (`docker build`) без ошибок
-- [ ] `docker-compose.yml` — полный локальный прогон (mongo+backend+frontend+ручной
-      rss-collect), проверить, что фронтенд видит бэкенд через nginx/ingress-подобный путь
-- [ ] Манифесты Kubernetes (`infra/k8s/base` + `overlays/dev`), поднять в `kind`/`minikube`
-- [ ] Настроить Ingress + TLS локально (self-signed/`mkcert`) или сразу в staging-кластере
-- [ ] CI: сборка и пуш образов в registry
-- [ ] `overlays/prod`, реальный кластер, секреты через Sealed Secrets/External Secrets
+- [x] §6: health-check, `bin/collect.ts`, флаг планировщика, graceful shutdown
+- [x] Dockerfile'ы для backend и frontend, локальная сборка (`docker build`) без ошибок —
+      оба образа собираются и прошли smoke-тест
+- [x] `docker-compose.yml` — полный локальный прогон (mongo+backend+frontend+ручной
+      rss-collect), фронтенд видит бэкенд через nginx-proxy — подтверждено `curl`
+      (`/health` → 200, `/` → 200, `/feed/items` через nginx → 200)
+- [x] Манифесты Kubernetes (`infra/k8s/base` + `overlays/dev` + `overlays/prod`) написаны
+      и провалидированы через `kubectl kustomize` (все три варианта собираются без ошибок,
+      патчи `replicas`/resources/ingress host применяются как задумано). **Не хватает**:
+      живого прогона в `kind`/`minikube` — на этой машине их нет, `kubectl apply
+      --dry-run` тоже не смог достать OpenAPI-схему без кластера. Первая настоящая
+      проверка будет на самом прод-сервере.
+- [ ] Настроить Ingress + TLS локально (self-signed/`mkcert`) или сразу в staging-кластере —
+      TLS-блок в `ingress.yaml` намеренно закомментирован, домена ещё нет
+- [ ] CI: сборка и пуш образов в registry (GHCR)
+- [ ] `overlays/prod` уже есть — осталось применить на реальном кластере, секрет
+      `backend-secret` создать напрямую через `kubectl create secret` (см. `secret.example.yaml`)
 - [ ] Бэкапы Mongo (если self-hosted) — CronJob с `mongodump` в объектное хранилище
-- [ ] §8: заказать 2 сервера на Hetzner Cloud (CX22 × 2, dev + prod), поставить k3s на prod
+- [x] §8: сервер на Hetzner Cloud заказан (CX22, только prod — отдельный dev-сервер не
+      нужен при таком масштабе)
 
 Это соответствует финальному пункту общего плана DevPulse — Модуль 11 (Deployment & Infra,
 v1.0) в Obsidian, только с Kubernetes вместо Docker Compose как целевой платформы.

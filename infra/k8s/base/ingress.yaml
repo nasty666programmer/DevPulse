@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devpulse-ingress
+  annotations:
+    # Uncomment once cert-manager + a ClusterIssuer are installed on the server
+    # (docs/kubernetes-migration.md §5) — until then, leave this and the `tls:`
+    # block below out, or the Ingress will point at a certificate that never issues.
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  # k3s ships Traefik as its built-in ingress controller — use it as-is instead
+  # of installing ingress-nginx separately. Do NOT pass --disable traefik when
+  # installing k3s on the server, or nothing will route traffic at all (only
+  # --disable servicelb --disable metrics-server are safe to trim for RAM).
+  ingressClassName: traefik
+  rules:
+    - host: devpulse.example.com # replace with the real domain once one is bought
+      http:
+        paths:
+          - path: /feed
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 3000
+          - path: /rss
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+  # tls:
+  #   - hosts: ["devpulse.example.com"]
+  #     secretName: devpulse-tls

@@ -2,9 +2,9 @@ import { createContainer, InjectionMode } from 'awilix';
 import { createControllersContainer } from './controller/container.js';
 import { createServicesContainer } from './modules/container.js';
 import { createDatabaseContainer } from './db/container.js';
-import MongoDB from './db/mongo.js';
+import type MongoDB from './db/mongo.js';
 
-export default function bootstrap() {
+export default async function bootstrap() {
     const container = createContainer({
         injectionMode: InjectionMode.PROXY,
         strict: true,
@@ -14,16 +14,12 @@ export default function bootstrap() {
     createServicesContainer(container);
     createDatabaseContainer(container);
 
-    // Connect to databases
-    connectDatabases();
-
-    return container;
-}
-
-async function connectDatabases() {
-    const mongo = new MongoDB();
+    // Resolve the DI-registered singleton (not a throwaway instance) so callers —
+    // health checks, graceful shutdown, bin/collect.ts — see the same connection.
+    const mongo = container.resolve<MongoDB>('mongo');
+    await mongo.connect();
 
     console.log('Application started');
 
-    return mongo.connect();
+    return container;
 }
