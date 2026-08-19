@@ -67,7 +67,8 @@ export default class TelegramBotService {
         try {
             const channel = await this.registerChannelByUsername(username);
             await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
-        } catch {
+        } catch (error) {
+            console.error('[TelegramBotService] registerChannelByUsername failed:', error);
             await ctx.reply('Канал не найден. Проверьте username и попробуйте снова.');
         }
     }
