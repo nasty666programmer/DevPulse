@@ -21,12 +21,16 @@ function channelOrigin(overrides: Partial<MessageOriginChannel['chat']> = {}): M
 }
 
 describe('TelegramBotService.registerForwardedChannel', () => {
-    let telegramChannelRepository: { upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']> };
+    let telegramChannelRepository: {
+        upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
+        findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
+    };
     let service: TelegramBotService;
 
     beforeEach(() => {
         telegramChannelRepository = {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
+            findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
         };
         service = new TelegramBotService({ telegramChannelRepository });
     });
@@ -73,7 +77,10 @@ describe('TelegramBotService.registerForwardedChannel', () => {
 
 describe('TelegramBotService.start', () => {
     it('does not start polling when no bot token is configured', () => {
-        const telegramChannelRepository = { upsertByChannelId: vi.fn() };
+        const telegramChannelRepository = {
+            upsertByChannelId: vi.fn(),
+            findAllWithUsername: vi.fn(),
+        };
         const service = new TelegramBotService({ telegramChannelRepository });
 
         expect(() => service.start()).not.toThrow();

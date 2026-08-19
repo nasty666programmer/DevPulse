@@ -1,5 +1,8 @@
 import TelegramChannelModel from '../../models/telegram/telegramChannel.js';
-import type { ITelegramChannel, ITelegramChannelDocument } from '../../models/telegram/interface/telegramChannel.js';
+import type {
+    ITelegramChannel,
+    ITelegramChannelDocument,
+} from '../../models/telegram/interface/telegramChannel.js';
 import type { ITelegramChannelRepository } from './interface/telegramChannelRepository.js';
 
 export default class TelegramChannelRepository implements ITelegramChannelRepository {
@@ -12,5 +15,9 @@ export default class TelegramChannelRepository implements ITelegramChannelReposi
 
         // findOneAndUpdate with upsert:true, new:true always resolves a document.
         return updated as ITelegramChannelDocument;
+    }
+
+    async findAllWithUsername(): Promise<ITelegramChannelDocument[]> {
+        return TelegramChannelModel.find({ username: { $ne: null } });
     }
 }
