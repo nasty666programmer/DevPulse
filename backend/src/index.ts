@@ -46,12 +46,19 @@ const server = app.listen(PORT, () => {
         const schedulerService = container.resolve<{ start: () => void }>('schedulerService');
         schedulerService.start();
     }
+
+    // No-op when TELEGRAM_BOT_TOKEN is unset — see TelegramBotService.start().
+    const telegramBotService = container.resolve<{ start: () => void }>('telegramBotService');
+    telegramBotService.start();
 });
 
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully');
 
     server.close(async () => {
+        const telegramBotService = container.resolve<{ stop: () => void }>('telegramBotService');
+        telegramBotService.stop();
+
         const mongo = container.resolve<MongoDB>('mongo');
         await mongo.disconnect();
         process.exit(0);

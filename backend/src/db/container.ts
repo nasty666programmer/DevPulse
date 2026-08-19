@@ -4,6 +4,7 @@ import MongoDB from './mongo.js';
 import RawArticleRepository from './repositories/feed/rawArticleRepository.js';
 import FeedItemRepository from './repositories/feed/feedItemRepository.js';
 import DigestRepository from './repositories/digest/digestRepository.js';
+import TelegramChannelRepository from './repositories/telegram/telegramChannelRepository.js';
 
 export function createDatabaseContainer(container: AwilixContainer) {
     return container.register({
@@ -11,5 +12,6 @@ export function createDatabaseContainer(container: AwilixContainer) {
         rawArticleRepository: asClass(RawArticleRepository).scoped(),
         feedItemRepository: asClass(FeedItemRepository).scoped(),
         digestRepository: asClass(DigestRepository).scoped(),
+        telegramChannelRepository: asClass(TelegramChannelRepository).scoped(),
     });
 }

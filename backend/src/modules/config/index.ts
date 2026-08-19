@@ -79,6 +79,11 @@ const config = {
     get feedsPageSize(): number {
         return parsePositiveInt(process.env.FEEDS_PAGE_SIZE, DEFAULT_FEEDS_PAGE_SIZE);
     },
+    // undefined when unset — the bot only starts when this is actually configured
+    // (see index.ts), rather than defaulting to some placeholder token.
+    get telegramBotToken(): string | undefined {
+        return process.env.TELEGRAM_BOT_TOKEN || undefined;
+    },
 };
 
 export default config;
