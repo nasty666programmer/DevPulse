@@ -290,12 +290,20 @@ Helm, если понадобятся параметризуемые чарты 
       живого прогона в `kind`/`minikube` — на этой машине их нет, `kubectl apply
       --dry-run` тоже не смог достать OpenAPI-схему без кластера. Первая настоящая
       проверка будет на самом прод-сервере.
-- [ ] Настроить Ingress + TLS локально (self-signed/`mkcert`) или сразу в staging-кластере —
-      TLS-блок в `ingress.yaml` намеренно закомментирован, домена ещё нет
-- [ ] CI: сборка и пуш образов в registry (GHCR)
-- [ ] `overlays/prod` уже есть — осталось применить на реальном кластере, секрет
-      `backend-secret` создать напрямую через `kubectl create secret` (см. `secret.example.yaml`)
-- [ ] Бэкапы Mongo (если self-hosted) — CronJob с `mongodump` в объектное хранилище
+- [x] Ingress + TLS — домен `pulsedev.duckdns.org` куплен/настроен, `ingress.yaml`
+      использует `cert-manager.io/cluster-issuer: letsencrypt-prod` и `tls.secretName:
+      devpulse-tls`; на сервере `kubectl get secrets` подтверждает, что сертификат
+      реально выписан (`devpulse-tls`, тип `kubernetes.io/tls`)
+- [x] CI: сборка и пуш образов в registry (GHCR) — `deploy.yml`, запуск вручную через
+      `workflow_dispatch` (осознанно не на каждый push, см. `9addc4f`)
+- [x] `overlays/prod` применён на реальном кластере, секреты созданы и проверены
+      напрямую на сервере (`kubectl get secrets`): `backend-secret` и `mongo-secret`
+      оба на месте
+- [ ] Бэкапы Mongo (если self-hosted) — CronJob с `mongodump` в объектное хранилище.
+      **Осознанно отложено** — на текущем масштабе (пет-проект, 6 пользователей,
+      RSS-данные легко пересобрать заново коллектором) риск потери данных признан
+      приемлемым; вернуться к этому пункту, если появятся данные, которые нельзя
+      восстановить повторным сбором (например, пользовательские аккаунты/настройки)
 - [x] §8: сервер на Hetzner Cloud заказан (CX22, только prod — отдельный dev-сервер не
       нужен при таком масштабе)
 
