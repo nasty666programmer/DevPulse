@@ -16,13 +16,11 @@ vi.mock('../../../modules/config/index.js', () => ({
     default: {
         feedSources: ['https://source.example/rss'],
         rssCronSchedule: '*/30 * * * *',
-        digestCronSchedule: '0 8 * * *',
     },
 }));
 
 import SchedulerService from '../../../modules/scheduler/index.js';
 import type { IRssCollector } from '../../../modules/rss/interfaces/index.js';
-import type { IDigestGenerator } from '../../../modules/digest/interfaces/index.js';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -34,7 +32,6 @@ function deferred<T>() {
 
 describe('SchedulerService', () => {
     let rssCollectorService: { collect: Mock<IRssCollector['collect']> };
-    let digestService: { generateDigest: Mock<IDigestGenerator['generateDigest']> };
     let service: SchedulerService;
 
     beforeEach(() => {
@@ -42,26 +39,24 @@ describe('SchedulerService', () => {
         scheduleMock.mockReturnValue({ stop: stopMock });
 
         rssCollectorService = { collect: vi.fn<IRssCollector['collect']>().mockResolvedValue(0) };
-        digestService = { generateDigest: vi.fn<IDigestGenerator['generateDigest']>().mockResolvedValue(undefined) };
-        service = new SchedulerService({ rssCollectorService, digestService });
+        service = new SchedulerService({ rssCollectorService });
     });
 
-    it('schedules both RSS collection and digest generation using the configured cron expressions', () => {
+    it('schedules only RSS collection using the configured cron expression', () => {
         service.start();
 
-        expect(scheduleMock).toHaveBeenCalledTimes(2);
-        expect(scheduleMock).toHaveBeenNthCalledWith(1, '*/30 * * * *', expect.any(Function));
-        expect(scheduleMock).toHaveBeenNthCalledWith(2, '0 8 * * *', expect.any(Function));
+        expect(scheduleMock).toHaveBeenCalledTimes(1);
+        expect(scheduleMock).toHaveBeenCalledWith('*/30 * * * *', expect.any(Function));
     });
 
     it('does not schedule twice if start() is called again', () => {
         service.start();
         service.start();
 
-        expect(scheduleMock).toHaveBeenCalledTimes(2);
+        expect(scheduleMock).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers rssCollectorService.collect() when the RSS scheduled task fires', async () => {
+    it('triggers rssCollectorService.collect() when the scheduled task fires', async () => {
         service.start();
 
         const scheduledFn = scheduleMock.mock.calls[0][1];
@@ -70,16 +65,7 @@ describe('SchedulerService', () => {
         expect(rssCollectorService.collect).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers digestService.generateDigest() when the digest scheduled task fires', async () => {
-        service.start();
-
-        const scheduledFn = scheduleMock.mock.calls[1][1];
-        await scheduledFn();
-
-        expect(digestService.generateDigest).toHaveBeenCalledTimes(1);
-    });
-
-    it('skips an RSS tick that fires while the previous collect() run is still in progress', async () => {
+    it('skips a tick that fires while the previous collect() run is still in progress', async () => {
         const { promise, resolve } = deferred<number>();
         rssCollectorService.collect.mockReturnValue(promise);
 
@@ -95,26 +81,10 @@ describe('SchedulerService', () => {
         await promise;
     });
 
-    it('skips a digest tick that fires while the previous generateDigest() run is still in progress', async () => {
-        const { promise, resolve } = deferred<void>();
-        digestService.generateDigest.mockReturnValue(promise);
-
-        service.start();
-        const scheduledFn = scheduleMock.mock.calls[1][1];
-
-        scheduledFn();
-        scheduledFn();
-
-        expect(digestService.generateDigest).toHaveBeenCalledTimes(1);
-
-        resolve();
-        await promise;
-    });
-
-    it('stops both underlying tasks', () => {
+    it('stops the underlying task', () => {
         service.start();
         service.stop();
 
-        expect(stopMock).toHaveBeenCalledTimes(2);
+        expect(stopMock).toHaveBeenCalledTimes(1);
     });
 });

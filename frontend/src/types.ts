@@ -1,4 +1,4 @@
-// Backend API contract — see design/DESIGN_SPEC.md and backend routes under /feed and /rss.
+// Backend API contract — see design/DESIGN_SPEC.md and backend routes under /feed, /rss and /digest.
 
 export type FeedItemDto = {
   id: string;
@@ -13,4 +13,10 @@ export type FeedItemDto = {
 
 export type CollectResultDto = {
   saved: number;
+};
+
+export type DigestDto = {
+  /** ISO date string — the day this digest covers. */
+  date: string;
+  articles: FeedItemDto[];
 };

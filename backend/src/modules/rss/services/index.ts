@@ -6,6 +6,7 @@ import type { IFeedItemCreator } from '../../../db/repositories/feed/interface/f
 import type { FeedItem } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher, IRssCollector } from '../interfaces/index.js';
 import type { ICategorizationService } from '../../categorization/interfaces/index.js';
+import type { IDigestGenerator } from '../../digest/interfaces/index.js';
 
 const DUPLICATE_KEY_ERROR_CODE = 11000;
 
@@ -25,20 +26,24 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
     private readonly rawArticleRepository: IRawArticleRepository;
     private readonly feedItemRepository: IFeedItemCreator;
     private readonly categorizationService: ICategorizationService;
+    private readonly digestService: IDigestGenerator;
 
     constructor({
         rawArticleRepository,
         feedItemRepository,
         categorizationService,
+        digestService,
     }: {
         rawArticleRepository: IRawArticleRepository;
         feedItemRepository: IFeedItemCreator;
         categorizationService: ICategorizationService;
+        digestService: IDigestGenerator;
     }) {
         this.parser = new Parser();
         this.rawArticleRepository = rawArticleRepository;
         this.feedItemRepository = feedItemRepository;
         this.categorizationService = categorizationService;
+        this.digestService = digestService;
     }
 
     async fetchFeed(sourceUrl: string) {
@@ -79,6 +84,16 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
         }
 
         console.log('[RssCollectorServices] Collect finished:', { ...summary, failedSources });
+
+        // Digest generation runs off the back of every collect — from the cron
+        // tick, the manual /rss/collect endpoint, or bin/collect.ts — rather than
+        // on its own separate schedule. A failure here shouldn't turn an otherwise
+        // successful collect into an error.
+        try {
+            await this.digestService.generateDigest();
+        } catch (error) {
+            console.error('[RssCollectorServices] Digest generation failed:', error);
+        }
 
         return summary.saved;
     }

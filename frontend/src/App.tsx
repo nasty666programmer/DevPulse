@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
-import { ArticleCard } from './components/ArticleCard';
-import { EmptyState } from './components/EmptyState';
-import { ErrorState } from './components/ErrorState';
+import { fetchLatestDigest } from './api/digest';
+import { FeedList } from './components/FeedList';
+import type { ListStatus } from './components/FeedList';
 import { Header } from './components/Header';
-import { SkeletonCard } from './components/SkeletonCard';
+import { Tabs } from './components/Tabs';
+import type { TabId } from './components/Tabs';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
 import type { FeedItemDto } from './types';
-
-type Status = 'loading' | 'ready' | 'error';
 
 const FEED_LIMIT = 20;
 
@@ -30,29 +29,48 @@ function describeError(err: unknown): string {
 
 export default function App() {
   const [theme, toggleTheme] = useTheme();
-  const [status, setStatus] = useState<Status>('loading');
-  const [items, setItems] = useState<FeedItemDto[]>([]);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<TabId>('digest');
+
+  const [digestStatus, setDigestStatus] = useState<ListStatus>('loading');
+  const [digestArticles, setDigestArticles] = useState<FeedItemDto[]>([]);
+  const [digestErrorMessage, setDigestErrorMessage] = useState('');
+
+  const [feedStatus, setFeedStatus] = useState<ListStatus>('loading');
+  const [feedItems, setFeedItems] = useState<FeedItemDto[]>([]);
+  const [feedErrorMessage, setFeedErrorMessage] = useState('');
+
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const lastUpdatedText = useRelativeTime(lastUpdated);
 
-  const loadItems = useCallback(async () => {
-    setStatus('loading');
+  const loadDigest = useCallback(async () => {
+    setDigestStatus('loading');
     try {
-      const data = await fetchFeedItems(FEED_LIMIT);
-      setItems(data);
-      setLastUpdated(new Date());
-      setStatus('ready');
+      const digest = await fetchLatestDigest();
+      setDigestArticles(digest?.articles ?? []);
+      setDigestStatus('ready');
     } catch (err) {
-      setErrorMessage(describeError(err));
-      setStatus('error');
+      setDigestErrorMessage(describeError(err));
+      setDigestStatus('error');
+    }
+  }, []);
+
+  const loadFeed = useCallback(async () => {
+    setFeedStatus('loading');
+    try {
+      const items = await fetchFeedItems(FEED_LIMIT);
+      setFeedItems(items);
+      setFeedStatus('ready');
+    } catch (err) {
+      setFeedErrorMessage(describeError(err));
+      setFeedStatus('error');
     }
   }, []);
 
   useEffect(() => {
-    void loadItems();
+    void loadDigest();
+    void loadFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -60,22 +78,32 @@ export default function App() {
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
+      // /rss/collect also regenerates the latest digest server-side, so refreshing
+      // refetches both tabs regardless of which one is currently open.
       await collectFeed();
-      const data = await fetchFeedItems(FEED_LIMIT);
-      setItems(data);
       setLastUpdated(new Date());
-      setStatus('ready');
+      await Promise.all([loadDigest(), loadFeed()]);
     } catch (err) {
-      setErrorMessage(describeError(err));
-      setStatus('error');
+      const message = describeError(err);
+      if (activeTab === 'feed') {
+        setFeedErrorMessage(message);
+        setFeedStatus('error');
+      } else {
+        setDigestErrorMessage(message);
+        setDigestStatus('error');
+      }
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, activeTab, loadDigest, loadFeed]);
 
-  const handleRetry = useCallback(() => {
-    void loadItems();
-  }, [loadItems]);
+  const handleRetryDigest = useCallback(() => {
+    void loadDigest();
+  }, [loadDigest]);
+
+  const handleRetryFeed = useCallback(() => {
+    void loadFeed();
+  }, [loadFeed]);
 
   return (
     <>
@@ -88,26 +116,30 @@ export default function App() {
       />
       <main>
         <div className="wrap">
-          {status === 'loading' && (
-            <div className="feed">
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-          )}
+          <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
-          {status === 'error' && <ErrorState message={errorMessage} onRetry={handleRetry} />}
-
-          {status === 'ready' && items.length === 0 && (
-            <EmptyState onRefresh={handleRefresh} isRefreshing={isRefreshing} />
-          )}
-
-          {status === 'ready' && items.length > 0 && (
-            <div className="feed">
-              {items.map((item) => (
-                <ArticleCard key={item.id} item={item} />
-              ))}
-            </div>
+          {activeTab === 'digest' ? (
+            <FeedList
+              status={digestStatus}
+              items={digestArticles}
+              errorMessage={digestErrorMessage}
+              onRetry={handleRetryDigest}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+              emptyTitle="Дайджест пока пуст"
+              emptyCaption="Нажмите «Обновить дайджест», чтобы собрать сегодняшний дайджест из источников."
+            />
+          ) : (
+            <FeedList
+              status={feedStatus}
+              items={feedItems}
+              errorMessage={feedErrorMessage}
+              onRetry={handleRetryFeed}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+              emptyTitle="Новостей пока нет"
+              emptyCaption="Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников."
+            />
           )}
         </div>
       </main>

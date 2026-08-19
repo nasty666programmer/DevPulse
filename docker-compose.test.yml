@@ -1,0 +1,24 @@
+# Отдельная песочница Mongo для ручных тестов/экспериментов — не связана с
+# основным dev-стеком (docker-compose.yml) и не мешает ему: свой project name
+# (name: ниже), свой volume, свой порт (27018, а не 27017). Оба стека можно
+# держать поднятыми одновременно.
+#
+# Запуск:  docker compose -f docker-compose.test.yml up -d
+# Остановка + снос данных:  docker compose -f docker-compose.test.yml down -v
+#
+# Compose сам подхватывает корневой .env (см. .env.example) по текущей
+# директории — тем же способом, что и docker-compose.yml, отдельно указывать
+# env_file не нужно.
+name: digest-plans-test
+
+services:
+    mongo-test:
+        image: mongo:7
+        volumes: ['mongodata-test:/data/db']
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-digestAdminLocal}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?set MONGO_INITDB_ROOT_PASSWORD in a root .env file, see .env.example}
+        ports: ['127.0.0.1:27018:27017']
+
+volumes:
+    mongodata-test:

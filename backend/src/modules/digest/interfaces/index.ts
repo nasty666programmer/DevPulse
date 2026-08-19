@@ -1,5 +1,11 @@
+import type { Category } from '../../categorization/interfaces/index.js';
+
 export interface DigestArticle {
+    id: string;
     title: string;
+    content: string;
+    date: Date;
+    category: Category;
     url: string | null;
     source: string | null;
 }
@@ -9,10 +15,15 @@ export interface DigestData {
     articles: DigestArticle[];
 }
 
-export interface IDigestArticleSource {
-    listItemsByDate(date: Date): Promise<DigestArticle[]>;
+export interface IDigestRepository {
+    upsertByDate(date: Date, articles: DigestArticle[]): Promise<void>;
+    getLatest(): Promise<DigestData | null>;
 }
 
 export interface IDigestGenerator {
     generateDigest(date?: Date): Promise<void>;
+}
+
+export interface IDigestReader {
+    getLatestDigest(): Promise<DigestData | null>;
 }

@@ -8,8 +8,11 @@ export interface IFeedItemCreator {
     create(data: IFeedItem): Promise<IFeedItemDocument>;
 }
 
-export interface IFeedItemRepository extends IFeedItemCreator {
+export interface IFeedItemDateReader {
+    getByDate(date: Date): Promise<IPopulatedFeedItem[]>;
+}
+
+export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemDateReader {
     getOne(): Promise<IFeedItemDocument | null>;
     getAll(limit: number): Promise<IPopulatedFeedItem[]>;
-    getByDate(date: Date): Promise<IPopulatedFeedItem[]>;
 }

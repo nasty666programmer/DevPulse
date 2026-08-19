@@ -30,3 +30,18 @@ wsl bash dev.sh
 - MongoDB, доступная по `MONGO_URI` из `backend/.env` (см. `backend/.env.example`) — без неё backend поднимется, но запросы к `/feed/*` будут отдавать 500.
 
 После старта: backend — http://localhost:3000, frontend — http://localhost:5173.
+
+## Локальный Mongo в Docker
+
+`docker compose up mongo -d` поднимает Mongo для локальной разработки, креды берутся из
+корневого `.env` (см. `.env.example`) — сам `docker-compose.yml` трогать не нужно.
+
+Важно: `MONGO_INITDB_ROOT_USERNAME`/`PASSWORD` применяются только при первой инициализации
+пустого volume. Если поменял их в `.env`, обычный рестарт контейнера новые креды не
+подхватит — нужно пересоздать volume:
+
+```bash
+bash mongo-reset.sh
+```
+
+Стирает локально собранные RSS-данные — это ожидаемо, коллектор пересоберёт их заново.

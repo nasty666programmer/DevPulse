@@ -28,6 +28,13 @@ spec:
                 name: backend-service
                 port:
                   number: 3000
+          - path: /digest
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 3000
           - path: /
             pathType: Prefix
             backend:
