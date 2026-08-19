@@ -1,5 +1,7 @@
 export type Category = 'Node.js' | 'Docker' | 'AWS' | 'DevOps' | 'AI' | 'Прочее';
 
+export const ALL_CATEGORIES: Category[] = ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'];
+
 export interface CategorizeInput {
     title: string;
     content: string;

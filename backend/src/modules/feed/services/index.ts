@@ -2,7 +2,7 @@ import type { IFeedItemRepository } from '../../../db/repositories/feed/interfac
 import type { IRawArticleCreator } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IHtmlParserService, ParsedArticle } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher } from '../../rss/interfaces/index.js';
-import type { ICategorizationService } from '../../categorization/interfaces/index.js';
+import type { Category, ICategorizationService } from '../../categorization/interfaces/index.js';
 import config from '../../config/index.js';
 import { mapPopulatedFeedItem } from '../mappers.js';
 
@@ -60,8 +60,8 @@ export default class FeedService {
         return await Promise.allSettled(feeds);
     }
 
-    async listItems(limit: number) {
-        const items = await this.feedItemRepository.getAll(limit);
+    async listItems(limit: number, category?: Category) {
+        const items = await this.feedItemRepository.getAll(limit, category);
 
         return items.map(mapPopulatedFeedItem);
     }

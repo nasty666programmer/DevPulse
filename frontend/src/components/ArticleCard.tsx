@@ -18,6 +18,8 @@ export function ArticleCard({ item }: ArticleCardProps) {
   return (
     <article className={`card${expanded ? ' is-expanded' : ''}`}>
       <div className="card-meta">
+        <span className="category-badge">{item.category}</span>
+        <span className="sep">·</span>
         {source}
         {dateText && <span className="sep">·</span>}
         {dateText}

@@ -2,28 +2,24 @@ import DigestModel from '../../models/digest/digest.js';
 import type { DigestArticle, DigestData } from '../../../modules/digest/interfaces/index.js';
 import type { IDigestRepository } from './interface/digestRepository.js';
 
-function startOfDay(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
 export default class DigestRepository implements IDigestRepository {
-    async upsertByDate(date: Date, articles: DigestArticle[]): Promise<void> {
-        const day = startOfDay(date);
+    async save(articles: DigestArticle[]): Promise<DigestData> {
+        const generatedAt = new Date();
 
-        await DigestModel.findOneAndUpdate(
-            { date: day },
-            { date: day, articles },
-            { upsert: true }
-        );
+        // Singleton: replaces the one existing digest document wholesale (or
+        // creates it on first run) — there's no per-day key to match on anymore.
+        await DigestModel.findOneAndReplace({}, { generatedAt, articles }, { upsert: true });
+
+        return { generatedAt, articles };
     }
 
     async getLatest(): Promise<DigestData | null> {
-        const digest = await DigestModel.findOne().sort({ date: -1 }).lean();
+        const digest = await DigestModel.findOne().lean();
 
         if (!digest) {
             return null;
         }
 
-        return { date: digest.date, articles: digest.articles };
+        return { generatedAt: digest.generatedAt, articles: digest.articles };
     }
 }

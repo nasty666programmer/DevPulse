@@ -4,6 +4,7 @@ import type {
     IFeedItemDocument,
     IPopulatedFeedItem,
 } from '../../models/feed/interface/feedItem.js';
+import type { Category } from '../../../modules/categorization/interfaces/index.js';
 import type { IFeedItemRepository } from './interface/feedItemRepository.js';
 
 export default class FeedItemRepository implements IFeedItemRepository {
@@ -15,8 +16,10 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return FeedItemModel.findOne();
     }
 
-    async getAll(limit: number): Promise<IPopulatedFeedItem[]> {
-        const items = await FeedItemModel.find()
+    async getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]> {
+        const filter = category ? { category } : {};
+
+        const items = await FeedItemModel.find(filter)
             .sort({ date: -1 })
             .limit(limit)
             .populate('rawArticleId')
@@ -26,13 +29,10 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return items as unknown as IPopulatedFeedItem[];
     }
 
-    async getByDate(date: Date): Promise<IPopulatedFeedItem[]> {
-        const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const endOfDay = new Date(startOfDay);
-        endOfDay.setDate(endOfDay.getDate() + 1);
-
-        const items = await FeedItemModel.find({ date: { $gte: startOfDay, $lt: endOfDay } })
+    async getRecentByCategory(category: Category, limit: number): Promise<IPopulatedFeedItem[]> {
+        const items = await FeedItemModel.find({ category })
             .sort({ date: -1 })
+            .limit(limit)
             .populate('rawArticleId')
             .lean();
 

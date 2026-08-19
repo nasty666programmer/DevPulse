@@ -14,10 +14,12 @@ const digestArticleSchema = new Schema(
     { _id: false }
 );
 
-// One document per calendar day — regenerated (upserted) every time RSS collection
-// runs, rather than on a separate schedule. See DigestRepository.upsertByDate.
+// Singleton — a snapshot of "the current digest", not a per-day archive. Always
+// exactly one document, replaced wholesale on every regeneration (either the
+// automatic one after RSS collection, or the manual "Обновить дайджест" button).
+// See DigestRepository.save.
 const digestSchema = new Schema<IDigest>({
-    date: { type: Date, required: true, unique: true, index: true },
+    generatedAt: { type: Date, required: true },
     articles: { type: [digestArticleSchema], default: [] },
 });
 

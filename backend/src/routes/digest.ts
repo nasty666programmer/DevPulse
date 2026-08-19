@@ -8,6 +8,11 @@ export default class DigestRoutes {
                 path: '/latest',
                 handler: 'getLatest',
             },
+            {
+                method: 'get',
+                path: '/generate',
+                handler: 'generate',
+            },
         ];
     }
 }

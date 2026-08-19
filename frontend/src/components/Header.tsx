@@ -36,7 +36,7 @@ export function Header({ theme, onToggleTheme, lastUpdatedText, onRefresh, isRef
             aria-busy={isRefreshing}
           >
             <RefreshIcon className={isRefreshing ? 'spin-icon' : undefined} />
-            <span className="btn-label">{isRefreshing ? 'Обновляем…' : 'Обновить дайджест'}</span>
+            <span className="btn-label">{isRefreshing ? 'Обновляем…' : 'Обновить'}</span>
           </button>
         </div>
       </div>

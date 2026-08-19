@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-import type { IDigestReader } from '../../modules/digest/interfaces/index.js';
+import type { IDigestGenerator, IDigestReader } from '../../modules/digest/interfaces/index.js';
 
 export default class DigestController {
-    private readonly digestService: IDigestReader;
+    private readonly digestService: IDigestReader & IDigestGenerator;
 
-    constructor({ digestService }: { digestService: IDigestReader }) {
+    constructor({ digestService }: { digestService: IDigestReader & IDigestGenerator }) {
         this.digestService = digestService;
     }
 
@@ -15,6 +15,12 @@ export default class DigestController {
             res.status(204).end();
             return;
         }
+
+        res.json(digest);
+    }
+
+    async generate(req: Request, res: Response) {
+        const digest = await this.digestService.generateDigest();
 
         res.json(digest);
     }

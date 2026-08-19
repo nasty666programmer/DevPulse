@@ -26,7 +26,7 @@ describe('GET /feed/item', () => {
             // mode resolves each on access), so even deps unused by the method under test
             // must be registered or the container throws before the handler runs.
             htmlParserService: asValue({ parseArticle: vi.fn() }),
-            feedItemRepository: asValue({ getOne: vi.fn(), getAll: vi.fn(), getByDate: vi.fn() }),
+            feedItemRepository: asValue({ getOne: vi.fn(), getAll: vi.fn(), getRecentByCategory: vi.fn() }),
             rawArticleRepository: asValue({ create: vi.fn() }),
             categorizationService: asValue({ categorize: vi.fn() }),
         });
@@ -55,5 +55,47 @@ describe('GET /feed/item', () => {
         const response = await request(app).get('/feed/fetch-item');
 
         expect(response.status).toBe(500);
+    });
+});
+
+describe('GET /feed/items', () => {
+    let app: express.Express;
+    let feedItemRepository: { getAll: ReturnType<typeof vi.fn> };
+
+    beforeEach(async () => {
+        feedItemRepository = { getAll: vi.fn().mockResolvedValue([]) };
+
+        const container = createContainer({
+            injectionMode: InjectionMode.PROXY,
+            strict: true,
+        });
+
+        container.register({
+            feedController: asClass(FeedController).scoped(),
+            feedService: asClass(FeedService).scoped(),
+            rssCollectorService: asValue({ fetchFeed: vi.fn() }),
+            htmlParserService: asValue({ parseArticle: vi.fn() }),
+            feedItemRepository: asValue(feedItemRepository),
+            rawArticleRepository: asValue({ create: vi.fn() }),
+            categorizationService: asValue({ categorize: vi.fn() }),
+        });
+
+        app = express();
+
+        await handleMiddleware(app, express, container);
+    });
+
+    it('passes the category query param through to the repository', async () => {
+        const response = await request(app).get('/feed/items?category=Docker');
+
+        expect(response.status).toBe(200);
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, 'Docker');
+    });
+
+    it('queries without a category filter when none is given', async () => {
+        const response = await request(app).get('/feed/items');
+
+        expect(response.status).toBe(200);
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, undefined);
     });
 });
