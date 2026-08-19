@@ -1,4 +1,4 @@
-import type { IProvider } from './interfaces.js';
+import type { IProvider } from '../interfaces.js';
 
 // One channel post, once there's a real Bot API integration to produce them.
 export interface TelegramPost {

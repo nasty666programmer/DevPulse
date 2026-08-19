@@ -6,11 +6,9 @@ import HtmlParserServices from './parsers/services/htmlParser.js';
 import FeedService from './feed/services/index.js';
 import SchedulerService from './scheduler/index.js';
 import CategorizationService from './categorization/services/index.js';
-import RssProvider from '../providers/RssProvider.js';
 
 export function createServicesContainer(container: AwilixContainer) {
     return container.register({
-        rssProvider: asClass(RssProvider).scoped(),
         rssCollectorService: asClass(RssCollectorServices).scoped(),
         digestService: asClass(DigestService).scoped(),
         htmlParserService: asClass(HtmlParserServices).scoped(),

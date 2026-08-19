@@ -1,12 +1,13 @@
 import Parser from 'rss-parser';
-import type { FeedItem } from '../modules/parsers/interfaces/index.js';
-import type { IProvider } from './interfaces.js';
+import type { FeedItem } from '../../modules/parsers/interfaces/index.js';
+import type { IProvider } from '../interfaces.js';
 
 export default class RssProvider implements IProvider<FeedItem> {
     private readonly parser: Parser;
 
     constructor() {
         this.parser = new Parser();
+        я;
     }
 
     async fetch(sourceUrl: string): Promise<FeedItem[]> {

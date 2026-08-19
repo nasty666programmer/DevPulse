@@ -2,6 +2,7 @@ import { createContainer, InjectionMode } from 'awilix';
 import { createControllersContainer } from './controller/container.js';
 import { createServicesContainer } from './modules/container.js';
 import { createDatabaseContainer } from './db/container.js';
+import { createProvidersContainer } from './providers/container.js';
 import type MongoDB from './db/mongo.js';
 
 export default async function bootstrap() {
@@ -13,6 +14,7 @@ export default async function bootstrap() {
     createControllersContainer(container);
     createServicesContainer(container);
     createDatabaseContainer(container);
+    createProvidersContainer(container);
 
     // Resolve the DI-registered singleton (not a throwaway instance) so callers —
     // health checks, graceful shutdown, bin/collect.ts — see the same connection.
