@@ -1,15 +1,30 @@
 import { Bot } from 'grammy';
 import type { Context } from 'grammy';
-import type { MessageOriginChannel } from 'grammy/types';
+import type { ChatFullInfo, MessageOriginChannel } from 'grammy/types';
 import config from '../../config/index.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
 import type { ITelegramChannelDocument } from '../../../db/models/telegram/interface/telegramChannel.js';
+
+// Telegram public usernames are 5-32 chars of letters, digits and underscore.
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{5,32}$/;
+
+// Accepts "@name", "t.me/name", "https://t.me/name", or bare "name".
+export function extractChannelUsername(text: string): string | null {
+    const withoutUrl = text.trim().replace(/^(https?:\/\/)?t\.me\//i, '');
+    const withoutAt = withoutUrl.replace(/^@/, '');
+
+    return USERNAME_PATTERN.test(withoutAt) ? withoutAt : null;
+}
 
 export default class TelegramBotService {
     private readonly telegramChannelRepository: ITelegramChannelRepository;
     private readonly bot: Bot | null;
 
-    constructor({ telegramChannelRepository }: { telegramChannelRepository: ITelegramChannelRepository }) {
+    constructor({
+        telegramChannelRepository,
+    }: {
+        telegramChannelRepository: ITelegramChannelRepository;
+    }) {
         this.telegramChannelRepository = telegramChannelRepository;
         this.bot = config.telegramBotToken ? new Bot(config.telegramBotToken) : null;
 
@@ -36,20 +51,53 @@ export default class TelegramBotService {
     private async handleMessage(ctx: Context): Promise<void> {
         const origin = ctx.message?.forward_origin;
 
-        if (!origin || origin.type !== 'channel') {
+        if (origin && origin.type === 'channel') {
+            const channel = await this.registerForwardedChannel(origin);
+            await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
             return;
         }
 
-        const channel = await this.registerForwardedChannel(origin);
+        const text = ctx.message?.text;
+        const username = text ? extractChannelUsername(text) : null;
 
-        await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
+        if (!username) {
+            return;
+        }
+
+        try {
+            const channel = await this.registerChannelByUsername(username);
+            await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
+        } catch {
+            await ctx.reply('Канал не найден. Проверьте username и попробуйте снова.');
+        }
     }
 
-    async registerForwardedChannel(origin: MessageOriginChannel): Promise<ITelegramChannelDocument> {
+    async registerForwardedChannel(
+        origin: MessageOriginChannel
+    ): Promise<ITelegramChannelDocument> {
         return this.telegramChannelRepository.upsertByChannelId({
             channelId: origin.chat.id,
             username: origin.chat.username ?? null,
             title: origin.chat.title,
+            addedAt: new Date(),
+        });
+    }
+
+    async registerChannelByUsername(username: string): Promise<ITelegramChannelDocument> {
+        if (!this.bot) {
+            throw new Error('Telegram bot is not configured');
+        }
+
+        const chat: ChatFullInfo = await this.bot.api.getChat(`@${username}`);
+
+        if (chat.type !== 'channel') {
+            throw new Error(`"@${username}" is not a channel`);
+        }
+
+        return this.telegramChannelRepository.upsertByChannelId({
+            channelId: chat.id,
+            username: chat.username ?? null,
+            title: chat.title,
             addedAt: new Date(),
         });
     }
