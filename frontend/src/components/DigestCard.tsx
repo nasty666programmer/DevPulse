@@ -50,7 +50,7 @@ export function DigestCard({ status, digest, errorMessage, onRetry, onRefresh, i
   }
 
   return (
-    <div className="digest-card">
+    <div className={`digest-card${expanded ? ' is-expanded' : ''}`}>
       <div className="digest-card-header">
         <button
           type="button"
@@ -66,7 +66,7 @@ export function DigestCard({ status, digest, errorMessage, onRetry, onRefresh, i
               {generatedText}
             </span>
           </span>
-          {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          {expanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
         </button>
 
         <button

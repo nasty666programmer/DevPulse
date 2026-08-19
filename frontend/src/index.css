@@ -19,6 +19,9 @@ html[data-theme='dark'] {
   --success: #4ade80;
   --skeleton-base: #1c1f26;
   --skeleton-shine: #262b34;
+  --glass-bg: rgba(26, 29, 36, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
   color-scheme: dark;
 }
 
@@ -41,6 +44,9 @@ html[data-theme='light'] {
   --success: #1f9254;
   --skeleton-base: #eeebe6;
   --skeleton-shine: #e2ddd4;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-highlight: rgba(255, 255, 255, 0.5);
   color-scheme: light;
 }
 
@@ -82,6 +88,20 @@ body {
   transition:
     background 0.15s ease,
     color 0.15s ease;
+  position: relative;
+}
+/* A couple of soft, fixed color blobs behind the content — otherwise the glass
+   cards have nothing but a flat, uniform color to blur, and backdrop-filter on
+   a flat color is indistinguishable from no blur at all. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(480px circle at 15% 15%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    radial-gradient(560px circle at 85% 40%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
 }
 a {
   color: inherit;
@@ -329,14 +349,36 @@ main {
 .digest-card {
   position: relative;
   z-index: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  margin-bottom: var(--space-4);
+  padding: var(--space-7);
+  margin-bottom: var(--space-5);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 var(--glass-highlight);
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.4s ease;
+}
+.digest-card.is-expanded {
+  transform: scale(1.015);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 var(--glass-highlight);
+}
+@media (prefers-reduced-motion: reduce) {
+  .digest-card {
+    transition: none;
+  }
+  .digest-card.is-expanded {
+    transform: none;
+  }
 }
 
-/* A couple of card-shaped slivers peeking out from behind the bottom edge —
+/* A couple of glass-tinted slivers peeking out from behind the bottom edge —
    fixed height (not tied to the card's own, variable, expanded height) so the
    "stack" reads the same whether collapsed or expanded. z-index:-1 relies on
    the parent's own stacking context (position+z-index above) to stay behind
@@ -349,9 +391,9 @@ main {
   left: 10px;
   right: 10px;
   height: 34px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: var(--glass-bg);
   z-index: -1;
 }
 .digest-card::before {
@@ -370,14 +412,14 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
 .digest-card-toggle {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   background: transparent;
   border: none;
   padding: 0;
@@ -393,16 +435,17 @@ main {
 .digest-card-heading {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .digest-card-title {
-  font: 700 18px var(--font-ui);
+  font: 700 26px var(--font-ui);
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .digest-card-meta {
-  font: 500 12.5px var(--font-mono);
+  font: 500 13.5px var(--font-mono);
   color: var(--text-meta);
 }
 .digest-card-meta .sep {
@@ -411,9 +454,9 @@ main {
 }
 
 .digest-card-body {
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--border);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--glass-border);
 }
 
 .digest-card-items {
@@ -421,6 +464,42 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-4);
   align-items: start;
+}
+
+/* Glass items inside the digest card only — the feed tab's plain .card stays
+   opaque, this is scoped to .digest-card-items specifically. */
+.digest-card-items .card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-color: var(--glass-border);
+  animation: digest-item-pop-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.digest-card-items .card:nth-child(1) { animation-delay: 0.02s; }
+.digest-card-items .card:nth-child(2) { animation-delay: 0.06s; }
+.digest-card-items .card:nth-child(3) { animation-delay: 0.10s; }
+.digest-card-items .card:nth-child(4) { animation-delay: 0.14s; }
+.digest-card-items .card:nth-child(5) { animation-delay: 0.18s; }
+.digest-card-items .card:nth-child(6) { animation-delay: 0.22s; }
+.digest-card-items .card:nth-child(7) { animation-delay: 0.26s; }
+.digest-card-items .card:nth-child(8) { animation-delay: 0.30s; }
+.digest-card-items .card:nth-child(9) { animation-delay: 0.34s; }
+.digest-card-items .card:nth-child(10) { animation-delay: 0.38s; }
+
+@keyframes digest-item-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .digest-card-items .card {
+    animation: none;
+  }
 }
 
 /* ============ ARTICLE CARD ============ */
