@@ -10,7 +10,8 @@
         "lint": "eslint .",
         "test": "vitest run",
         "extract": "tsx bin/extract.ts",
-        "collect": "tsx bin/collect.ts"
+        "collect": "tsx bin/collect.ts",
+        "telegram-collect": "tsx bin/telegram-collect.ts"
     },
     "dependencies": {
         "@mozilla/readability": "^0.6.0",
