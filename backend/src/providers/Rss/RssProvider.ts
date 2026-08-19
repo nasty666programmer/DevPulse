@@ -7,7 +7,6 @@ export default class RssProvider implements IProvider<FeedItem> {
 
     constructor() {
         this.parser = new Parser();
-        я;
     }
 
     async fetch(sourceUrl: string): Promise<FeedItem[]> {
