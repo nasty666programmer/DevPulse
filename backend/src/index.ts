@@ -45,6 +45,11 @@ const server = app.listen(PORT, () => {
     if (schedulerEnabled) {
         const schedulerService = container.resolve<{ start: () => void }>('schedulerService');
         schedulerService.start();
+
+        const telegramSchedulerService = container.resolve<{ start: () => void }>(
+            'telegramSchedulerService'
+        );
+        telegramSchedulerService.start();
     }
 
     // No-op when TELEGRAM_BOT_TOKEN is unset — see TelegramBotService.start().
