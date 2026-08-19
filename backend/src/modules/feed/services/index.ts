@@ -1,10 +1,10 @@
 import type { IFeedItemRepository } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { IRawArticleCreator } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
-import type { IPopulatedFeedItem } from '../../../db/models/feed/interface/feedItem.js';
 import type { IHtmlParserService, ParsedArticle } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher } from '../../rss/interfaces/index.js';
 import type { ICategorizationService } from '../../categorization/interfaces/index.js';
 import config from '../../config/index.js';
+import { mapPopulatedFeedItem } from '../mappers.js';
 
 export default class FeedService {
     private readonly rssCollectorService: IFeedFetcher;
@@ -66,12 +66,6 @@ export default class FeedService {
         return items.map(mapPopulatedFeedItem);
     }
 
-    async listItemsByDate(date: Date) {
-        const items = await this.feedItemRepository.getByDate(date);
-
-        return items.map(mapPopulatedFeedItem);
-    }
-
     async saveFeedItem(article: ParsedArticle) {
         const rawArticle = await this.rawArticleRepository.create({
             title: article.title ?? 'Untitled',
@@ -94,16 +88,4 @@ export default class FeedService {
 
         await this.feedItemRepository.create(feedItem);
     }
-}
-
-function mapPopulatedFeedItem(item: IPopulatedFeedItem) {
-    return {
-        id: item._id.toString(),
-        title: item.title,
-        content: item.content,
-        date: item.date,
-        category: item.category,
-        url: item.rawArticleId?.url ?? null,
-        source: item.rawArticleId?.source ?? null,
-    };
 }

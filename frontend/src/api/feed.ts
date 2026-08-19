@@ -1,4 +1,5 @@
 import type { CollectResultDto, FeedItemDto } from '../types';
+import { parseErrorMessage } from './http';
 
 // All requests use relative paths so the Vite dev-server proxy (see vite.config.ts)
 // and any production reverse-proxy both work without code changes.
@@ -8,16 +9,6 @@ const DEFAULT_LIMIT = 20;
 // The RSS collection step performs real network requests + full-text extraction on the
 // backend, so it can legitimately take a while. Keep a generous client-side timeout.
 const COLLECT_TIMEOUT_MS = 30_000;
-
-async function parseErrorMessage(res: Response): Promise<string> {
-  try {
-    const text = await res.text();
-    if (text) return `${res.status} ${res.statusText}: ${text.slice(0, 200)}`;
-  } catch {
-    // ignore
-  }
-  return `${res.status} ${res.statusText}`;
-}
 
 export async function fetchFeedItems(limit = DEFAULT_LIMIT): Promise<FeedItemDto[]> {
   const res = await fetch(`/feed/items?limit=${limit}`);

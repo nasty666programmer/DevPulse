@@ -10,6 +10,7 @@ export default defineConfig({
       // Prefixes match the backend routes 1:1, so no rewrite is needed.
       '/feed': 'http://localhost:3000',
       '/rss': 'http://localhost:3000',
+      '/digest': 'http://localhost:3000',
     },
   },
 })

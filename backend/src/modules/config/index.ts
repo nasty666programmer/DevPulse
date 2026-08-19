@@ -9,8 +9,6 @@ const DEFAULT_RSS_FETCH_CONCURRENCY = 3;
 const DEFAULT_PORT = 3000;
 const DEFAULT_ITEMS_LIMIT = 20;
 const DEFAULT_FEEDS_PAGE_SIZE = 5;
-const DEFAULT_DIGEST_CRON_SCHEDULE = '0 8 * * *';
-const DEFAULT_DIGEST_OUTPUT_DIR = 'digests';
 
 /**
  * RSS_FEEDS supports either a flat array of URL strings, a flat array of
@@ -80,12 +78,6 @@ const config = {
     },
     get feedsPageSize(): number {
         return parsePositiveInt(process.env.FEEDS_PAGE_SIZE, DEFAULT_FEEDS_PAGE_SIZE);
-    },
-    get digestCronSchedule(): string {
-        return process.env.DIGEST_CRON_SCHEDULE || DEFAULT_DIGEST_CRON_SCHEDULE;
-    },
-    get digestOutputDir(): string {
-        return process.env.DIGEST_OUTPUT_DIR || DEFAULT_DIGEST_OUTPUT_DIR;
     },
 };
 

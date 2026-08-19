@@ -28,6 +28,7 @@ import RssCollectorServices from '../../../modules/rss/services/index.js';
 import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IFeedItemCreator } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { ICategorizationService } from '../../../modules/categorization/interfaces/index.js';
+import type { IDigestGenerator } from '../../../modules/digest/interfaces/index.js';
 
 describe('RssCollectorServices', () => {
     let rawArticleRepository: {
@@ -36,6 +37,7 @@ describe('RssCollectorServices', () => {
     };
     let feedItemRepository: { create: Mock<IFeedItemCreator['create']> };
     let categorizationService: { categorize: Mock<ICategorizationService['categorize']> };
+    let digestService: { generateDigest: Mock<IDigestGenerator['generateDigest']> };
     let service: RssCollectorServices;
 
     beforeEach(() => {
@@ -49,11 +51,15 @@ describe('RssCollectorServices', () => {
         categorizationService = {
             categorize: vi.fn<ICategorizationService['categorize']>().mockReturnValue('Прочее'),
         };
+        digestService = {
+            generateDigest: vi.fn<IDigestGenerator['generateDigest']>().mockResolvedValue(undefined),
+        };
 
         service = new RssCollectorServices({
             rawArticleRepository,
             feedItemRepository,
             categorizationService,
+            digestService,
         });
     });
 
@@ -176,5 +182,22 @@ describe('RssCollectorServices', () => {
 
         expect(saved).toBe(0);
         expect(feedItemRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('regenerates the digest after a collect run finishes', async () => {
+        parseURLMock.mockResolvedValue({ items: [] });
+        processFeedItemsMock.mockResolvedValue([]);
+
+        await service.collect();
+
+        expect(digestService.generateDigest).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let a digest generation failure fail the collect run', async () => {
+        parseURLMock.mockResolvedValue({ items: [] });
+        processFeedItemsMock.mockResolvedValue([]);
+        digestService.generateDigest.mockRejectedValue(new Error('digest write failed'));
+
+        await expect(service.collect()).resolves.toBe(0);
     });
 });

@@ -143,41 +143,4 @@ describe('FeedService', () => {
         ]);
     });
 
-    it('lists feed items for a given date', async () => {
-        const rawArticleId = new Types.ObjectId();
-        const date = new Date('2026-08-18');
-
-        feedItemRepository.getByDate.mockResolvedValue([
-            {
-                _id: new Types.ObjectId(),
-                title: 'Item for today',
-                content: 'Body',
-                date,
-                category: 'Docker',
-                rawArticleId: {
-                    _id: rawArticleId,
-                    title: 'Item for today',
-                    url: 'https://example.com/today',
-                    content: 'Body',
-                    publishedAt: date,
-                    source: 'example.com',
-                },
-            },
-        ]);
-
-        const items = await feedService.listItemsByDate(date);
-
-        expect(feedItemRepository.getByDate).toHaveBeenCalledWith(date);
-        expect(items).toEqual([
-            {
-                id: expect.any(String),
-                title: 'Item for today',
-                content: 'Body',
-                date,
-                category: 'Docker',
-                url: 'https://example.com/today',
-                source: 'example.com',
-            },
-        ]);
-    });
 });

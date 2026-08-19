@@ -1,37 +1,41 @@
 services:
-  mongo:
-    image: mongo:7
-    volumes: ["mongodata:/data/db"]
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?set MONGO_INITDB_ROOT_PASSWORD in a root .env file, see .env.example}
+    mongo:
+        image: mongo:7
+        volumes: ['mongodata:/data/db']
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?set MONGO_INITDB_ROOT_PASSWORD in a root .env file, see .env.example}
+        # Localhost-only (not 0.0.0.0) so it's reachable from Compass/mongosh on this
+        # machine but not from the LAN. Prod never does this — see mongo-service.yaml,
+        # which stays headless/cluster-internal on purpose.
+        ports: ['127.0.0.1:27017:27017']
 
-  backend-service:
-    build: ./backend
-    env_file: ./backend/.env
-    environment:
-      # Overrides backend/.env's MONGO_URI, which points at localhost:27017 for
-      # non-Docker local dev (dev.sh). Inside compose, Mongo is only reachable
-      # at the "mongo" service hostname.
-      # MONGO_DB_NAME defaults to a distinct "_dev" database so it never collides
-      # in name with the prod database (see infra/k8s/base/secret.example.yaml).
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
-    depends_on: [mongo]
-    ports: ["3000:3000"]
+    backend-service:
+        build: ./backend
+        env_file: ./backend/.env
+        environment:
+            # Overrides backend/.env's MONGO_URI, which points at localhost:27017 for
+            # non-Docker local dev (dev.sh). Inside compose, Mongo is only reachable
+            # at the "mongo" service hostname.
+            # MONGO_DB_NAME defaults to a distinct "_dev" database so it never collides
+            # in name with the prod database (see infra/k8s/base/secret.example.yaml).
+            MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
+        depends_on: [mongo]
+        ports: ['3000:3000']
 
-  frontend:
-    build: ./frontend
-    depends_on: [backend-service]
-    ports: ["8080:80"]
+    frontend:
+        build: ./frontend
+        depends_on: [backend-service]
+        ports: ['8080:80']
 
-  rss-collect:
-    build: ./backend
-    command: ["node", "dist/bin/collect.js"]
-    env_file: ./backend/.env
-    environment:
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
-    depends_on: [mongo]
-    profiles: ["cron"] # run manually: docker compose --profile cron run --rm rss-collect
+    rss-collect:
+        build: ./backend
+        command: ['node', 'dist/bin/collect.js']
+        env_file: ./backend/.env
+        environment:
+            MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
+        depends_on: [mongo]
+        profiles: ['cron'] # run manually: docker compose --profile cron run --rm rss-collect
 
 volumes:
-  mongodata:
+    mongodata:
