@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest } from './api/digest';
+import { CategoryFilter } from './components/CategoryFilter';
 import { FeedList } from './components/FeedList';
 import type { ListStatus } from './components/FeedList';
 import { Header } from './components/Header';
@@ -8,7 +9,7 @@ import { Tabs } from './components/Tabs';
 import type { TabId } from './components/Tabs';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
-import type { FeedItemDto } from './types';
+import type { Category, FeedItemDto } from './types';
 
 const FEED_LIMIT = 20;
 
@@ -38,6 +39,7 @@ export default function App() {
   const [feedStatus, setFeedStatus] = useState<ListStatus>('loading');
   const [feedItems, setFeedItems] = useState<FeedItemDto[]>([]);
   const [feedErrorMessage, setFeedErrorMessage] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<Category | null>(null);
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -59,20 +61,25 @@ export default function App() {
   const loadFeed = useCallback(async () => {
     setFeedStatus('loading');
     try {
-      const items = await fetchFeedItems(FEED_LIMIT);
+      const items = await fetchFeedItems(FEED_LIMIT, categoryFilter ?? undefined);
       setFeedItems(items);
       setFeedStatus('ready');
     } catch (err) {
       setFeedErrorMessage(describeError(err));
       setFeedStatus('error');
     }
-  }, []);
+  }, [categoryFilter]);
 
   useEffect(() => {
     void loadDigest();
-    void loadFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-runs whenever categoryFilter changes (loadFeed's identity changes with it),
+  // and also covers the initial load.
+  useEffect(() => {
+    void loadFeed();
+  }, [loadFeed]);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -130,16 +137,19 @@ export default function App() {
               emptyCaption="Нажмите «Обновить дайджест», чтобы собрать сегодняшний дайджест из источников."
             />
           ) : (
-            <FeedList
-              status={feedStatus}
-              items={feedItems}
-              errorMessage={feedErrorMessage}
-              onRetry={handleRetryFeed}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-              emptyTitle="Новостей пока нет"
-              emptyCaption="Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников."
-            />
+            <>
+              <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
+              <FeedList
+                status={feedStatus}
+                items={feedItems}
+                errorMessage={feedErrorMessage}
+                onRetry={handleRetryFeed}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+                emptyTitle="Новостей пока нет"
+                emptyCaption="Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников."
+              />
+            </>
           )}
         </div>
       </main>

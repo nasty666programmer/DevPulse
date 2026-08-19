@@ -1,4 +1,4 @@
-import type { CollectResultDto, FeedItemDto } from '../types';
+import type { Category, CollectResultDto, FeedItemDto } from '../types';
 import { parseErrorMessage } from './http';
 
 // All requests use relative paths so the Vite dev-server proxy (see vite.config.ts)
@@ -10,8 +10,13 @@ const DEFAULT_LIMIT = 20;
 // backend, so it can legitimately take a while. Keep a generous client-side timeout.
 const COLLECT_TIMEOUT_MS = 30_000;
 
-export async function fetchFeedItems(limit = DEFAULT_LIMIT): Promise<FeedItemDto[]> {
-  const res = await fetch(`/feed/items?limit=${limit}`);
+export async function fetchFeedItems(limit = DEFAULT_LIMIT, category?: Category): Promise<FeedItemDto[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (category) {
+    params.set('category', category);
+  }
+
+  const res = await fetch(`/feed/items?${params}`);
   if (!res.ok) {
     throw new Error(await parseErrorMessage(res));
   }

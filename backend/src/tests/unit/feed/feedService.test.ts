@@ -143,4 +143,56 @@ describe('FeedService', () => {
         ]);
     });
 
+    describe('listItems', () => {
+        it('lists items without a category filter', async () => {
+            feedItemRepository.getAll.mockResolvedValue([]);
+
+            await feedService.listItems(20);
+
+            expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, undefined);
+        });
+
+        it('passes the category filter through to the repository', async () => {
+            feedItemRepository.getAll.mockResolvedValue([]);
+
+            await feedService.listItems(20, 'Docker');
+
+            expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, 'Docker');
+        });
+
+        it('maps populated feed items to the flat DTO shape', async () => {
+            const rawArticleId = new Types.ObjectId();
+            feedItemRepository.getAll.mockResolvedValue([
+                {
+                    _id: new Types.ObjectId(),
+                    title: 'Post',
+                    content: 'Body',
+                    date: new Date('2026-08-18'),
+                    category: 'Docker',
+                    rawArticleId: {
+                        _id: rawArticleId,
+                        title: 'Post',
+                        url: 'https://example.com/post',
+                        content: 'Body',
+                        publishedAt: new Date('2026-08-18'),
+                        source: 'example.com',
+                    },
+                },
+            ]);
+
+            const items = await feedService.listItems(20);
+
+            expect(items).toEqual([
+                {
+                    id: expect.any(String),
+                    title: 'Post',
+                    content: 'Body',
+                    date: new Date('2026-08-18'),
+                    category: 'Docker',
+                    url: 'https://example.com/post',
+                    source: 'example.com',
+                },
+            ]);
+        });
+    });
 });

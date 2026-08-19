@@ -57,3 +57,45 @@ describe('GET /feed/item', () => {
         expect(response.status).toBe(500);
     });
 });
+
+describe('GET /feed/items', () => {
+    let app: express.Express;
+    let feedItemRepository: { getAll: ReturnType<typeof vi.fn> };
+
+    beforeEach(async () => {
+        feedItemRepository = { getAll: vi.fn().mockResolvedValue([]) };
+
+        const container = createContainer({
+            injectionMode: InjectionMode.PROXY,
+            strict: true,
+        });
+
+        container.register({
+            feedController: asClass(FeedController).scoped(),
+            feedService: asClass(FeedService).scoped(),
+            rssCollectorService: asValue({ fetchFeed: vi.fn() }),
+            htmlParserService: asValue({ parseArticle: vi.fn() }),
+            feedItemRepository: asValue(feedItemRepository),
+            rawArticleRepository: asValue({ create: vi.fn() }),
+            categorizationService: asValue({ categorize: vi.fn() }),
+        });
+
+        app = express();
+
+        await handleMiddleware(app, express, container);
+    });
+
+    it('passes the category query param through to the repository', async () => {
+        const response = await request(app).get('/feed/items?category=Docker');
+
+        expect(response.status).toBe(200);
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, 'Docker');
+    });
+
+    it('queries without a category filter when none is given', async () => {
+        const response = await request(app).get('/feed/items');
+
+        expect(response.status).toBe(200);
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, undefined);
+    });
+});

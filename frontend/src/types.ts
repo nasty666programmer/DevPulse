@@ -1,5 +1,11 @@
 // Backend API contract — see design/DESIGN_SPEC.md and backend routes under /feed, /rss and /digest.
 
+// Mirrors backend's Category union (modules/categorization/interfaces/index.ts) — kept in
+// sync by hand since it's a small, rarely-changing set tied to CategorizationService's rules.
+export type Category = 'Node.js' | 'Docker' | 'AWS' | 'DevOps' | 'AI' | 'Прочее';
+
+export const CATEGORIES: Category[] = ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'];
+
 export type FeedItemDto = {
   id: string;
   title: string;
@@ -7,6 +13,7 @@ export type FeedItemDto = {
   content: string;
   /** ISO date string. */
   date: string;
+  category: Category;
   url: string | null;
   source: string | null;
 };
