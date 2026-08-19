@@ -4,6 +4,7 @@ import RssController from './rssController/index.js';
 import FeedController from './feed/index.js';
 import HealthController from './health/index.js';
 import DigestController from './digest/index.js';
+import TelegramController from './telegramController/index.js';
 
 export function createControllersContainer(container: AwilixContainer) {
     return container.register({
@@ -11,5 +12,6 @@ export function createControllersContainer(container: AwilixContainer) {
         feedController: asClass(FeedController).scoped(),
         healthController: asClass(HealthController).scoped(),
         digestController: asClass(DigestController).scoped(),
+        telegramController: asClass(TelegramController).scoped(),
     });
 }
