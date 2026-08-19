@@ -1,16 +1,17 @@
 import type { IFeedItemRepository } from '../../../db/repositories/feed/interface/feedItemRepository.js';
-import type { IRawArticleCreator } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
+import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IHtmlParserService, ParsedArticle } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher } from '../../rss/interfaces/index.js';
 import type { Category, ICategorizationService } from '../../categorization/interfaces/index.js';
 import config from '../../config/index.js';
 import { mapPopulatedFeedItem } from '../mappers.js';
+import { isDuplicateKeyError } from '../../../common/utils.js';
 
 export default class FeedService {
     private readonly rssCollectorService: IFeedFetcher;
     private readonly htmlParserService: IHtmlParserService;
     private readonly feedItemRepository: IFeedItemRepository;
-    private readonly rawArticleRepository: IRawArticleCreator;
+    private readonly rawArticleRepository: IRawArticleRepository;
     private readonly categorizationService: ICategorizationService;
 
     constructor({
@@ -23,7 +24,7 @@ export default class FeedService {
         rssCollectorService: IFeedFetcher;
         htmlParserService: IHtmlParserService;
         feedItemRepository: IFeedItemRepository;
-        rawArticleRepository: IRawArticleCreator;
+        rawArticleRepository: IRawArticleRepository;
         categorizationService: ICategorizationService;
     }) {
         this.rssCollectorService = rssCollectorService;
@@ -67,13 +68,30 @@ export default class FeedService {
     }
 
     async saveFeedItem(article: ParsedArticle) {
-        const rawArticle = await this.rawArticleRepository.create({
-            title: article.title ?? 'Untitled',
-            url: article.url,
-            content: article.content,
-            publishedAt: article.publishedAt,
-            source: article.source,
-        });
+        const existing = await this.rawArticleRepository.findByUrl(article.url);
+
+        if (existing) {
+            return;
+        }
+
+        let rawArticle;
+
+        try {
+            rawArticle = await this.rawArticleRepository.create({
+                title: article.title ?? 'Untitled',
+                url: article.url,
+                content: article.content,
+                publishedAt: article.publishedAt,
+                source: article.source,
+            });
+        } catch (error) {
+            if (isDuplicateKeyError(error)) {
+                // Lost a race with another concurrent save inserting the same url.
+                return;
+            }
+
+            throw error;
+        }
 
         const feedItem = {
             title: rawArticle.title,

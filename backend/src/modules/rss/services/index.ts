@@ -1,14 +1,13 @@
-import Parser from 'rss-parser';
 import { processFeedItems } from '../../parsers/services/processFeedItems.js';
 import config from '../../config/index.js';
+import { isDuplicateKeyError } from '../../../common/utils.js';
 import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IFeedItemCreator } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { FeedItem } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher, IRssCollector } from '../interfaces/index.js';
 import type { ICategorizationService } from '../../categorization/interfaces/index.js';
 import type { IDigestGenerator } from '../../digest/interfaces/index.js';
-
-const DUPLICATE_KEY_ERROR_CODE = 11000;
+import type { IProvider } from '../../../providers/interfaces.js';
 
 type SourceCollectResult = {
     total: number;
@@ -17,29 +16,27 @@ type SourceCollectResult = {
     htmlParseFailures: number;
 };
 
-function isDuplicateKeyError(error: unknown): boolean {
-    return typeof error === 'object' && error !== null && (error as { code?: number }).code === DUPLICATE_KEY_ERROR_CODE;
-}
-
 export default class RssCollectorServices implements IFeedFetcher, IRssCollector {
-    private readonly parser: Parser;
+    private readonly rssProvider: IProvider<FeedItem>;
     private readonly rawArticleRepository: IRawArticleRepository;
     private readonly feedItemRepository: IFeedItemCreator;
     private readonly categorizationService: ICategorizationService;
     private readonly digestService: IDigestGenerator;
 
     constructor({
+        rssProvider,
         rawArticleRepository,
         feedItemRepository,
         categorizationService,
         digestService,
     }: {
+        rssProvider: IProvider<FeedItem>;
         rawArticleRepository: IRawArticleRepository;
         feedItemRepository: IFeedItemCreator;
         categorizationService: ICategorizationService;
         digestService: IDigestGenerator;
     }) {
-        this.parser = new Parser();
+        this.rssProvider = rssProvider;
         this.rawArticleRepository = rawArticleRepository;
         this.feedItemRepository = feedItemRepository;
         this.categorizationService = categorizationService;
@@ -47,10 +44,7 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
     }
 
     async fetchFeed(sourceUrl: string) {
-        // TODO: Implement logic for retry mechanism from config or maybe wrapper
-        const feed = await this.parser.parseURL(sourceUrl);
-
-        return feed.items as FeedItem[];
+        return this.rssProvider.fetch(sourceUrl);
     }
 
     /**

@@ -17,7 +17,7 @@ import FeedService from '../../../modules/feed/services/index.js';
 import type { IFeedFetcher } from '../../../modules/rss/interfaces/index.js';
 import type { IHtmlParserService } from '../../../modules/parsers/interfaces/index.js';
 import type { IFeedItemRepository } from '../../../db/repositories/feed/interface/feedItemRepository.js';
-import type { IRawArticleCreator } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
+import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { ICategorizationService } from '../../../modules/categorization/interfaces/index.js';
 
 describe('FeedService', () => {
@@ -29,7 +29,10 @@ describe('FeedService', () => {
         getAll: Mock<IFeedItemRepository['getAll']>;
         getRecentByCategory: Mock<IFeedItemRepository['getRecentByCategory']>;
     };
-    let rawArticleRepository: { create: Mock<IRawArticleCreator['create']> };
+    let rawArticleRepository: {
+        create: Mock<IRawArticleRepository['create']>;
+        findByUrl: Mock<IRawArticleRepository['findByUrl']>;
+    };
     let categorizationService: { categorize: Mock<ICategorizationService['categorize']> };
     let feedService: FeedService;
 
@@ -42,7 +45,10 @@ describe('FeedService', () => {
             getAll: vi.fn<IFeedItemRepository['getAll']>(),
             getRecentByCategory: vi.fn<IFeedItemRepository['getRecentByCategory']>(),
         };
-        rawArticleRepository = { create: vi.fn<IRawArticleCreator['create']>() };
+        rawArticleRepository = {
+            create: vi.fn<IRawArticleRepository['create']>(),
+            findByUrl: vi.fn<IRawArticleRepository['findByUrl']>().mockResolvedValue(null),
+        };
         categorizationService = {
             categorize: vi.fn<ICategorizationService['categorize']>().mockReturnValue('Прочее'),
         };
@@ -125,6 +131,53 @@ describe('FeedService', () => {
             category: 'Прочее',
         });
         expect(result).toEqual(feedItems[0]);
+    });
+
+    it('does not save or throw when the article URL is already stored', async () => {
+        const feedItems = [{ link: 'https://reddit.com/post-1' }];
+        const parsedArticle = {
+            title: 'Post 1',
+            description: 'excerpt',
+            url: 'https://reddit.com/post-1',
+            content: 'full text',
+            publishedAt: new Date('2026-07-01'),
+            source: 'reddit.com',
+        };
+
+        rssCollectorService.fetchFeed.mockResolvedValue(feedItems);
+        htmlParserService.parseArticle.mockResolvedValue(parsedArticle);
+        rawArticleRepository.findByUrl.mockResolvedValue({
+            _id: new Types.ObjectId(),
+            ...parsedArticle,
+        });
+
+        await expect(feedService.fetchFeedItems()).resolves.toEqual(feedItems[0]);
+
+        expect(rawArticleRepository.create).not.toHaveBeenCalled();
+        expect(feedItemRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when saving loses a duplicate-URL race', async () => {
+        const feedItems = [{ link: 'https://reddit.com/post-1' }];
+        const parsedArticle = {
+            title: 'Post 1',
+            description: 'excerpt',
+            url: 'https://reddit.com/post-1',
+            content: 'full text',
+            publishedAt: new Date('2026-07-01'),
+            source: 'reddit.com',
+        };
+
+        rssCollectorService.fetchFeed.mockResolvedValue(feedItems);
+        htmlParserService.parseArticle.mockResolvedValue(parsedArticle);
+        rawArticleRepository.findByUrl.mockResolvedValue(null);
+        rawArticleRepository.create.mockRejectedValue(
+            Object.assign(new Error('E11000 duplicate key error'), { code: 11000 })
+        );
+
+        await expect(feedService.fetchFeedItems()).resolves.toEqual(feedItems[0]);
+
+        expect(feedItemRepository.create).not.toHaveBeenCalled();
     });
 
     it('fetches all configured feed urls and settles every result', async () => {

@@ -1,3 +1,9 @@
+const DUPLICATE_KEY_ERROR_CODE = 11000;
+
+export function isDuplicateKeyError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && (error as { code?: number }).code === DUPLICATE_KEY_ERROR_CODE;
+}
+
 export function cleanScrapedText(text: string) {
     return text
         .split('\n')

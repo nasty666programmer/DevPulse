@@ -2,15 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { Types } from 'mongoose';
 
-const { parseURLMock, processFeedItemsMock } = vi.hoisted(() => ({
-    parseURLMock: vi.fn(),
+const { processFeedItemsMock } = vi.hoisted(() => ({
     processFeedItemsMock: vi.fn(),
-}));
-
-vi.mock('rss-parser', () => ({
-    default: vi.fn().mockImplementation(function ParserMock(this: { parseURL: typeof parseURLMock }) {
-        this.parseURL = parseURLMock;
-    }),
 }));
 
 vi.mock('../../../modules/parsers/services/processFeedItems.js', () => ({
@@ -29,6 +22,8 @@ import type { IRawArticleRepository } from '../../../db/repositories/feed/interf
 import type { IFeedItemCreator } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { ICategorizationService } from '../../../modules/categorization/interfaces/index.js';
 import type { IDigestGenerator } from '../../../modules/digest/interfaces/index.js';
+import type { IProvider } from '../../../providers/interfaces.js';
+import type { FeedItem } from '../../../modules/parsers/interfaces/index.js';
 
 describe('RssCollectorServices', () => {
     let rawArticleRepository: {
@@ -38,6 +33,7 @@ describe('RssCollectorServices', () => {
     let feedItemRepository: { create: Mock<IFeedItemCreator['create']> };
     let categorizationService: { categorize: Mock<ICategorizationService['categorize']> };
     let digestService: { generateDigest: Mock<IDigestGenerator['generateDigest']> };
+    let rssProvider: { fetch: Mock<IProvider<FeedItem>['fetch']> };
     let service: RssCollectorServices;
 
     beforeEach(() => {
@@ -56,19 +52,22 @@ describe('RssCollectorServices', () => {
                 .fn<IDigestGenerator['generateDigest']>()
                 .mockResolvedValue({ generatedAt: new Date(), articles: [] }),
         };
+        rssProvider = { fetch: vi.fn<IProvider<FeedItem>['fetch']>() };
 
         service = new RssCollectorServices({
             rawArticleRepository,
             feedItemRepository,
             categorizationService,
             digestService,
+            rssProvider,
         });
     });
 
     it('saves only new items, skipping ones already stored by URL', async () => {
-        parseURLMock.mockResolvedValue({
-            items: [{ link: 'https://a.example/1' }, { link: 'https://a.example/2' }],
-        });
+        rssProvider.fetch.mockResolvedValue([
+            { link: 'https://a.example/1' },
+            { link: 'https://a.example/2' },
+        ]);
         processFeedItemsMock.mockResolvedValue([
             { link: 'https://a.example/1', title: 'New', fullText: 'text 1', pubDate: '2026-08-01' },
             { link: 'https://a.example/2', title: 'Existing', fullText: 'text 2', pubDate: '2026-08-02' },
@@ -122,9 +121,9 @@ describe('RssCollectorServices', () => {
     });
 
     it('does not let one failing source abort collection of the others', async () => {
-        parseURLMock
+        rssProvider.fetch
             .mockRejectedValueOnce(new Error('network down'))
-            .mockResolvedValueOnce({ items: [{ link: 'https://b.example/1' }] });
+            .mockResolvedValueOnce([{ link: 'https://b.example/1' }]);
         processFeedItemsMock.mockResolvedValue([
             { link: 'https://b.example/1', title: 'B post', fullText: 'text', pubDate: '2026-08-03' },
         ]);
@@ -153,9 +152,7 @@ describe('RssCollectorServices', () => {
     });
 
     it('skips an item gracefully when rawArticleRepository.create hits a duplicate key race', async () => {
-        parseURLMock.mockResolvedValue({
-            items: [{ link: 'https://a.example/1' }],
-        });
+        rssProvider.fetch.mockResolvedValue([{ link: 'https://a.example/1' }]);
         processFeedItemsMock.mockResolvedValue([
             { link: 'https://a.example/1', title: 'New', fullText: 'text 1', pubDate: '2026-08-01' },
         ]);
@@ -171,9 +168,7 @@ describe('RssCollectorServices', () => {
     });
 
     it('lets a non-duplicate-key error from rawArticleRepository.create propagate as a source failure', async () => {
-        parseURLMock.mockResolvedValue({
-            items: [{ link: 'https://a.example/1' }],
-        });
+        rssProvider.fetch.mockResolvedValue([{ link: 'https://a.example/1' }]);
         processFeedItemsMock.mockResolvedValue([
             { link: 'https://a.example/1', title: 'New', fullText: 'text 1', pubDate: '2026-08-01' },
         ]);
@@ -187,7 +182,7 @@ describe('RssCollectorServices', () => {
     });
 
     it('regenerates the digest after a collect run finishes', async () => {
-        parseURLMock.mockResolvedValue({ items: [] });
+        rssProvider.fetch.mockResolvedValue([]);
         processFeedItemsMock.mockResolvedValue([]);
 
         await service.collect();
@@ -196,10 +191,22 @@ describe('RssCollectorServices', () => {
     });
 
     it('does not let a digest generation failure fail the collect run', async () => {
-        parseURLMock.mockResolvedValue({ items: [] });
+        rssProvider.fetch.mockResolvedValue([]);
         processFeedItemsMock.mockResolvedValue([]);
         digestService.generateDigest.mockRejectedValue(new Error('digest write failed'));
 
         await expect(service.collect()).resolves.toBe(0);
+    });
+
+    describe('fetchFeed', () => {
+        it('delegates to the injected RSS provider', async () => {
+            const items = [{ link: 'https://a.example/1' }];
+            rssProvider.fetch.mockResolvedValue(items);
+
+            const result = await service.fetchFeed('https://a.example/rss');
+
+            expect(rssProvider.fetch).toHaveBeenCalledWith('https://a.example/rss');
+            expect(result).toBe(items);
+        });
     });
 });
