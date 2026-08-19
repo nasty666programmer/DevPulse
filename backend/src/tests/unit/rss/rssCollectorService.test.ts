@@ -52,7 +52,9 @@ describe('RssCollectorServices', () => {
             categorize: vi.fn<ICategorizationService['categorize']>().mockReturnValue('Прочее'),
         };
         digestService = {
-            generateDigest: vi.fn<IDigestGenerator['generateDigest']>().mockResolvedValue(undefined),
+            generateDigest: vi
+                .fn<IDigestGenerator['generateDigest']>()
+                .mockResolvedValue({ generatedAt: new Date(), articles: [] }),
         };
 
         service = new RssCollectorServices({

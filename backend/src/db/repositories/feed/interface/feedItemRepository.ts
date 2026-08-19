@@ -9,11 +9,11 @@ export interface IFeedItemCreator {
     create(data: IFeedItem): Promise<IFeedItemDocument>;
 }
 
-export interface IFeedItemDateReader {
-    getByDate(date: Date): Promise<IPopulatedFeedItem[]>;
+export interface IFeedItemCategoryReader {
+    getRecentByCategory(category: Category, limit: number): Promise<IPopulatedFeedItem[]>;
 }
 
-export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemDateReader {
+export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemCategoryReader {
     getOne(): Promise<IFeedItemDocument | null>;
     getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]>;
 }

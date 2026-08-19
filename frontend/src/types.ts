@@ -23,7 +23,7 @@ export type CollectResultDto = {
 };
 
 export type DigestDto = {
-  /** ISO date string — the day this digest covers. */
-  date: string;
+  /** ISO date string — when this digest snapshot was generated. */
+  generatedAt: string;
   articles: FeedItemDto[];
 };

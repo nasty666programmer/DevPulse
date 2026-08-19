@@ -29,13 +29,10 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return items as unknown as IPopulatedFeedItem[];
     }
 
-    async getByDate(date: Date): Promise<IPopulatedFeedItem[]> {
-        const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const endOfDay = new Date(startOfDay);
-        endOfDay.setDate(endOfDay.getDate() + 1);
-
-        const items = await FeedItemModel.find({ date: { $gte: startOfDay, $lt: endOfDay } })
+    async getRecentByCategory(category: Category, limit: number): Promise<IPopulatedFeedItem[]> {
+        const items = await FeedItemModel.find({ category })
             .sort({ date: -1 })
+            .limit(limit)
             .populate('rawArticleId')
             .lean();
 

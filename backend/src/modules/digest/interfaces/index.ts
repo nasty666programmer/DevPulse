@@ -11,17 +11,17 @@ export interface DigestArticle {
 }
 
 export interface DigestData {
-    date: Date;
+    generatedAt: Date;
     articles: DigestArticle[];
 }
 
 export interface IDigestRepository {
-    upsertByDate(date: Date, articles: DigestArticle[]): Promise<void>;
+    save(articles: DigestArticle[]): Promise<DigestData>;
     getLatest(): Promise<DigestData | null>;
 }
 
 export interface IDigestGenerator {
-    generateDigest(date?: Date): Promise<void>;
+    generateDigest(): Promise<DigestData>;
 }
 
 export interface IDigestReader {

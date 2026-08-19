@@ -27,7 +27,7 @@ describe('FeedService', () => {
         getOne: Mock<IFeedItemRepository['getOne']>;
         create: Mock<IFeedItemRepository['create']>;
         getAll: Mock<IFeedItemRepository['getAll']>;
-        getByDate: Mock<IFeedItemRepository['getByDate']>;
+        getRecentByCategory: Mock<IFeedItemRepository['getRecentByCategory']>;
     };
     let rawArticleRepository: { create: Mock<IRawArticleCreator['create']> };
     let categorizationService: { categorize: Mock<ICategorizationService['categorize']> };
@@ -40,7 +40,7 @@ describe('FeedService', () => {
             getOne: vi.fn<IFeedItemRepository['getOne']>(),
             create: vi.fn<IFeedItemRepository['create']>(),
             getAll: vi.fn<IFeedItemRepository['getAll']>(),
-            getByDate: vi.fn<IFeedItemRepository['getByDate']>(),
+            getRecentByCategory: vi.fn<IFeedItemRepository['getRecentByCategory']>(),
         };
         rawArticleRepository = { create: vi.fn<IRawArticleCreator['create']>() };
         categorizationService = {

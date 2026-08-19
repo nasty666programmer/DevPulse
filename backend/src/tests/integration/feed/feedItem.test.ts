@@ -26,7 +26,7 @@ describe('GET /feed/item', () => {
             // mode resolves each on access), so even deps unused by the method under test
             // must be registered or the container throws before the handler runs.
             htmlParserService: asValue({ parseArticle: vi.fn() }),
-            feedItemRepository: asValue({ getOne: vi.fn(), getAll: vi.fn(), getByDate: vi.fn() }),
+            feedItemRepository: asValue({ getOne: vi.fn(), getAll: vi.fn(), getRecentByCategory: vi.fn() }),
             rawArticleRepository: asValue({ create: vi.fn() }),
             categorizationService: asValue({ categorize: vi.fn() }),
         });

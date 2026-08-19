@@ -5,13 +5,15 @@ type EmptyStateProps = {
   isRefreshing: boolean;
   title?: string;
   caption?: string;
+  buttonLabel?: string;
 };
 
 export function EmptyState({
   onRefresh,
   isRefreshing,
   title = 'Новостей пока нет',
-  caption = 'Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников.',
+  caption = 'Нажмите «Обновить», чтобы собрать свежие статьи из источников.',
+  buttonLabel = 'Обновить',
 }: EmptyStateProps) {
   return (
     <div className="card">
@@ -27,7 +29,7 @@ export function EmptyState({
           aria-busy={isRefreshing}
         >
           <RefreshIcon className={isRefreshing ? 'spin-icon' : undefined} />
-          {isRefreshing ? 'Обновляем…' : 'Обновить дайджест'}
+          {isRefreshing ? 'Обновляем…' : buttonLabel}
         </button>
       </div>
     </div>

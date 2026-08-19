@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
-import { fetchLatestDigest } from './api/digest';
+import { fetchLatestDigest, generateDigest } from './api/digest';
 import { CategoryFilter } from './components/CategoryFilter';
+import { DigestCard } from './components/DigestCard';
 import { FeedList } from './components/FeedList';
 import type { ListStatus } from './components/FeedList';
 import { Header } from './components/Header';
@@ -9,7 +10,7 @@ import { Tabs } from './components/Tabs';
 import type { TabId } from './components/Tabs';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
-import type { Category, FeedItemDto } from './types';
+import type { Category, DigestDto, FeedItemDto } from './types';
 
 const FEED_LIMIT = 20;
 
@@ -33,8 +34,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('digest');
 
   const [digestStatus, setDigestStatus] = useState<ListStatus>('loading');
-  const [digestArticles, setDigestArticles] = useState<FeedItemDto[]>([]);
+  const [digest, setDigest] = useState<DigestDto | null>(null);
   const [digestErrorMessage, setDigestErrorMessage] = useState('');
+  const [isRefreshingDigest, setIsRefreshingDigest] = useState(false);
 
   const [feedStatus, setFeedStatus] = useState<ListStatus>('loading');
   const [feedItems, setFeedItems] = useState<FeedItemDto[]>([]);
@@ -49,8 +51,8 @@ export default function App() {
   const loadDigest = useCallback(async () => {
     setDigestStatus('loading');
     try {
-      const digest = await fetchLatestDigest();
-      setDigestArticles(digest?.articles ?? []);
+      const data = await fetchLatestDigest();
+      setDigest(data);
       setDigestStatus('ready');
     } catch (err) {
       setDigestErrorMessage(describeError(err));
@@ -81,12 +83,12 @@ export default function App() {
     void loadFeed();
   }, [loadFeed]);
 
+  // Full RSS collect — slow (real network fetches), also regenerates the digest
+  // server-side, so it refreshes both tabs regardless of which one is open.
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
-      // /rss/collect also regenerates the latest digest server-side, so refreshing
-      // refetches both tabs regardless of which one is currently open.
       await collectFeed();
       setLastUpdated(new Date());
       await Promise.all([loadDigest(), loadFeed()]);
@@ -103,6 +105,23 @@ export default function App() {
       setIsRefreshing(false);
     }
   }, [isRefreshing, activeTab, loadDigest, loadFeed]);
+
+  // Digest-only refresh — regenerates straight from whatever's already in the
+  // database, no RSS collection involved, so it's fast.
+  const handleRefreshDigest = useCallback(async () => {
+    if (isRefreshingDigest) return;
+    setIsRefreshingDigest(true);
+    try {
+      const data = await generateDigest();
+      setDigest(data);
+      setDigestStatus('ready');
+    } catch (err) {
+      setDigestErrorMessage(describeError(err));
+      setDigestStatus('error');
+    } finally {
+      setIsRefreshingDigest(false);
+    }
+  }, [isRefreshingDigest]);
 
   const handleRetryDigest = useCallback(() => {
     void loadDigest();
@@ -126,15 +145,13 @@ export default function App() {
           <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'digest' ? (
-            <FeedList
+            <DigestCard
               status={digestStatus}
-              items={digestArticles}
+              digest={digest}
               errorMessage={digestErrorMessage}
               onRetry={handleRetryDigest}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-              emptyTitle="Дайджест пока пуст"
-              emptyCaption="Нажмите «Обновить дайджест», чтобы собрать сегодняшний дайджест из источников."
+              onRefresh={handleRefreshDigest}
+              isRefreshing={isRefreshingDigest}
             />
           ) : (
             <>
@@ -147,7 +164,7 @@ export default function App() {
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
                 emptyTitle="Новостей пока нет"
-                emptyCaption="Нажмите «Обновить дайджест», чтобы собрать свежие статьи из источников."
+                emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
               />
             </>
           )}
