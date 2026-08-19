@@ -46,23 +46,18 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
 
-  deploy:
+  # Deploy manifests + the SSH deploy mechanism now live in the private
+  # nasty666programmer/pulsedev-infra repo (kept out of this public repo on
+  # purpose — see docs/kubernetes-migration.md). This just hands off the built
+  # commit's SHA; that repo's own Deploy workflow does the actual kubectl work.
+  trigger-deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1
+      - name: Dispatch deploy to pulsedev-infra
+        uses: peter-evans/repository-dispatch@v3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: root
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/DevPulse
-            git pull origin main
-            kubectl apply -k infra/k8s/overlays/prod
-            kubectl set image deployment/backend backend=${{ env.BACKEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
-            kubectl set image deployment/frontend frontend=${{ env.FRONTEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
-            kubectl set image cronjob/rss-collect rss-collect=${{ env.BACKEND_IMAGE }}:sha-${{ needs.build-and-push.outputs.sha }}
-            kubectl rollout status deployment/backend --timeout=120s
-            kubectl rollout status deployment/frontend --timeout=120s
+          token: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          repository: nasty666programmer/pulsedev-infra
+          event-type: deploy
+          client-payload: '{"sha": "${{ needs.build-and-push.outputs.sha }}"}'

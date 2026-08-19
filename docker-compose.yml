@@ -18,7 +18,8 @@ services:
             # non-Docker local dev (dev.sh). Inside compose, Mongo is only reachable
             # at the "mongo" service hostname.
             # MONGO_DB_NAME defaults to a distinct "_dev" database so it never collides
-            # in name with the prod database (see infra/k8s/base/secret.example.yaml).
+            # in name with the prod database (see k8s/base/secret.example.yaml in the
+            # nasty666programmer/pulsedev-infra repo).
             MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
         depends_on: [mongo]
         ports: ['3000:3000']
