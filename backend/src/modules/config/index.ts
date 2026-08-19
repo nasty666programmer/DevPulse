@@ -5,6 +5,7 @@ const DEFAULT_FEED_SOURCES = [
 ];
 
 const DEFAULT_RSS_CRON_SCHEDULE = '0 * * * *';
+const DEFAULT_TELEGRAM_CRON_SCHEDULE = '0 * * * *';
 const DEFAULT_RSS_FETCH_CONCURRENCY = 3;
 const DEFAULT_PORT = 3000;
 const DEFAULT_ITEMS_LIMIT = 20;
@@ -83,6 +84,11 @@ const config = {
     // (see index.ts), rather than defaulting to some placeholder token.
     get telegramBotToken(): string | undefined {
         return process.env.TELEGRAM_BOT_TOKEN || undefined;
+    },
+    // Independent of RSS_CRON_SCHEDULE — t.me/s/<username> is an unofficial
+    // page, not a rate-limited API we're meant to hit as often as RSS.
+    get telegramCronSchedule(): string {
+        return process.env.TELEGRAM_CRON_SCHEDULE || DEFAULT_TELEGRAM_CRON_SCHEDULE;
     },
 };
 
