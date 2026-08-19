@@ -13,7 +13,9 @@ services:
       # Overrides backend/.env's MONGO_URI, which points at localhost:27017 for
       # non-Docker local dev (dev.sh). Inside compose, Mongo is only reachable
       # at the "mongo" service hostname.
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/digital_ai_project?authSource=admin
+      # MONGO_DB_NAME defaults to a distinct "_dev" database so it never collides
+      # in name with the prod database (see infra/k8s/base/secret.example.yaml).
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
     depends_on: [mongo]
     ports: ["3000:3000"]
 
@@ -27,7 +29,7 @@ services:
     command: ["node", "dist/bin/collect.js"]
     env_file: ./backend/.env
     environment:
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/digital_ai_project?authSource=admin
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
     depends_on: [mongo]
     profiles: ["cron"] # run manually: docker compose --profile cron run --rm rss-collect
 
