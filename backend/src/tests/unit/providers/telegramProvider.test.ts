@@ -81,6 +81,25 @@ describe('TelegramProvider.fetch', () => {
         expect(posts[1].text).toBe('');
     });
 
+    it('preserves line breaks from <br> tags instead of collapsing them into a run-on string', async () => {
+        const multiLineHtml = `
+          <div class="tgme_widget_message_wrap">
+            <div class="tgme_widget_message" data-post="testchannel/103">
+              <div class="tgme_widget_message_text">First line<br>Second line</div>
+              <a class="tgme_widget_message_date" href="https://t.me/testchannel/103">
+                <time class="time" datetime="2026-08-19T12:00:00+00:00">12:00</time>
+              </a>
+            </div>
+          </div>
+        `;
+        fetchMock.mockResolvedValue(htmlResponse(multiLineHtml));
+
+        const posts = await provider.fetch('testchannel');
+
+        expect(posts).toHaveLength(1);
+        expect(posts[0].text).toBe('First line\n\nSecond line');
+    });
+
     it('skips a message missing a data-post id or a timestamp instead of throwing', async () => {
         const malformedHtml = `
           <div class="tgme_widget_message">

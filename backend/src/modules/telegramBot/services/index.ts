@@ -64,13 +64,20 @@ export default class TelegramBotService {
             return;
         }
 
+        let channel: ITelegramChannelDocument;
+
         try {
-            const channel = await this.registerChannelByUsername(username);
-            await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
+            channel = await this.registerChannelByUsername(username);
         } catch (error) {
-            console.error('[TelegramBotService] registerChannelByUsername failed:', error);
+            console.error(
+                '[TelegramBotService] registerChannelByUsername failed:',
+                error instanceof Error ? error.message : error
+            );
             await ctx.reply('Канал не найден. Проверьте username и попробуйте снова.');
+            return;
         }
+
+        await ctx.reply(`Канал «${channel.title}» добавлен как источник ✅`);
     }
 
     async registerForwardedChannel(

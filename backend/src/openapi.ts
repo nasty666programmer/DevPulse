@@ -59,14 +59,21 @@ const openapiSpec = {
                     {
                         name: 'category',
                         in: 'query',
-                        schema: { type: 'string', enum: ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'] },
+                        schema: {
+                            type: 'string',
+                            enum: ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'],
+                        },
                         description: 'Фильтр по категории (точное совпадение).',
                     },
                 ],
                 responses: {
                     '200': {
                         description: 'OK',
-                        content: { 'application/json': { schema: { type: 'array', items: feedItemSchema } } },
+                        content: {
+                            'application/json': {
+                                schema: { type: 'array', items: feedItemSchema },
+                            },
+                        },
                     },
                 },
             },
@@ -89,7 +96,10 @@ const openapiSpec = {
             get: {
                 summary: 'Забрать первый айтем первого сконфигурированного фида и сохранить его',
                 tags: ['feed'],
-                responses: { '200': { description: 'OK' }, '500': { description: 'Сбой похода в фид' } },
+                responses: {
+                    '200': { description: 'OK' },
+                    '500': { description: 'Сбой похода в фид' },
+                },
             },
         },
         '/rss/collect': {
@@ -104,7 +114,29 @@ const openapiSpec = {
                         description: 'OK',
                         content: {
                             'application/json': {
-                                schema: { type: 'object', properties: { saved: { type: 'integer' } } },
+                                schema: {
+                                    type: 'object',
+                                    properties: { saved: { type: 'integer' } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/telegram/collect': {
+            get: {
+                summary: 'Сбор новых постов по всем зарегистрированным Telegram-каналам',
+                tags: ['telegram'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: { saved: { type: 'integer' } },
+                                },
                             },
                         },
                     },

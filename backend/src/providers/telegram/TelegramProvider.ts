@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { load } from 'cheerio';
 import type { IProvider } from '../interfaces.js';
+import { cleanScrapedText } from '../../common/utils.js';
 
 // One channel post scraped from the public https://t.me/s/<username> preview
 // page — the only surface that exposes a public channel's recent posts
@@ -23,6 +24,7 @@ export default class TelegramProvider implements IProvider<TelegramPost> {
     async fetch(username: string): Promise<TelegramPost[]> {
         const response = await fetch(`https://t.me/s/${username}`, {
             headers: { 'User-Agent': DEFAULT_USER_AGENT },
+            signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {
@@ -67,9 +69,12 @@ export default class TelegramProvider implements IProvider<TelegramPost> {
                 }
             });
 
+            const $text = $post.find('.tgme_widget_message_text').first();
+            $text.find('br').replaceWith('\n');
+
             posts.push({
                 messageId,
-                text: $post.find('.tgme_widget_message_text').first().text().trim(),
+                text: cleanScrapedText($text.text()),
                 publishedAt: new Date(datetime),
                 mediaUrls,
             });

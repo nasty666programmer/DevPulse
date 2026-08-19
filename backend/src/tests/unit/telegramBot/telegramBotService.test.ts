@@ -214,3 +214,97 @@ describe('TelegramBotService.registerChannelByUsername', () => {
         );
     });
 });
+
+describe('TelegramBotService handleMessage integration', () => {
+    let telegramChannelRepository: {
+        upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
+        findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
+    };
+    let handleMessage: (ctx: unknown) => Promise<void>;
+
+    beforeEach(() => {
+        mockConfig.telegramBotToken = 'test-token';
+        telegramChannelRepository = {
+            upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
+            findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
+        };
+        new TelegramBotService({ telegramChannelRepository });
+
+        handleMessage = botOnMock.mock.calls[0][1];
+    });
+
+    it('replies with a success message when a forwarded channel post is registered', async () => {
+        const saved = {
+            _id: new Types.ObjectId(),
+            channelId: -1001234567890,
+            username: 'design_channel',
+            title: 'Дизайн-канал',
+            addedAt: new Date(),
+        };
+        telegramChannelRepository.upsertByChannelId.mockResolvedValue(saved);
+
+        const ctx = {
+            message: { forward_origin: channelOrigin() },
+            reply: vi.fn(),
+        };
+
+        await handleMessage(ctx);
+
+        expect(telegramChannelRepository.upsertByChannelId).toHaveBeenCalledWith(
+            expect.objectContaining({ channelId: -1001234567890 })
+        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('✅'));
+    });
+
+    it('replies with a success message when a username is registered via getChat', async () => {
+        getChatMock.mockResolvedValue({
+            id: -1009876543210,
+            type: 'channel',
+            title: 'Публичный канал',
+            username: 'public_channel',
+        } as ChatFullInfo);
+        const saved = {
+            _id: new Types.ObjectId(),
+            channelId: -1009876543210,
+            username: 'public_channel',
+            title: 'Публичный канал',
+            addedAt: new Date(),
+        };
+        telegramChannelRepository.upsertByChannelId.mockResolvedValue(saved);
+
+        const ctx = {
+            message: { text: '@public_channel' },
+            reply: vi.fn(),
+        };
+
+        await handleMessage(ctx);
+
+        expect(telegramChannelRepository.upsertByChannelId).toHaveBeenCalledWith(
+            expect.objectContaining({ channelId: -1009876543210 })
+        );
+        expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('✅'));
+    });
+
+    it('replies with a "not found" message and does not leak the raw error when registration fails', async () => {
+        getChatMock.mockRejectedValue(new Error('Bad Request: chat not found'));
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const ctx = {
+            message: { text: '@missing_channel' },
+            reply: vi.fn(),
+        };
+
+        await handleMessage(ctx);
+
+        expect(telegramChannelRepository.upsertByChannelId).not.toHaveBeenCalled();
+        expect(ctx.reply).toHaveBeenCalledWith(
+            'Канал не найден. Проверьте username и попробуйте снова.'
+        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            '[TelegramBotService] registerChannelByUsername failed:',
+            'Bad Request: chat not found'
+        );
+
+        consoleErrorSpy.mockRestore();
+    });
+});
