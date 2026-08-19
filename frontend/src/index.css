@@ -347,8 +347,6 @@ main {
 
 /* ============ DIGEST CARD ============ */
 .digest-card {
-  position: relative;
-  z-index: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -383,36 +381,6 @@ main {
   .digest-card.is-expanded {
     transform: none;
   }
-}
-
-/* A couple of glass-tinted slivers peeking out from behind the bottom edge —
-   fixed height (not tied to the card's own, variable, expanded height) so the
-   "stack" reads the same whether collapsed or expanded. z-index:-1 relies on
-   the parent's own stacking context (position+z-index above) to stay behind
-   its background/border but never in front of real content, which paints
-   after these pseudo-elements regardless of DOM order. */
-.digest-card::before,
-.digest-card::after {
-  content: '';
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  height: 34px;
-  border: 1px solid var(--glass-border);
-  border-radius: 28px;
-  background: var(--glass-bg);
-  z-index: -1;
-}
-.digest-card::before {
-  bottom: -7px;
-  transform: rotate(-1.25deg);
-}
-.digest-card::after {
-  bottom: -13px;
-  left: 20px;
-  right: 20px;
-  opacity: 0.7;
-  transform: rotate(1.25deg);
 }
 
 .digest-card-header {
