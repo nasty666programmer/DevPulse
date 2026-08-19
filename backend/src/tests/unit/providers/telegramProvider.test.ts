@@ -52,7 +52,9 @@ describe('TelegramProvider.fetch', () => {
 
         expect(fetchMock).toHaveBeenCalledWith(
             'https://t.me/s/testchannel',
-            expect.objectContaining({ headers: expect.objectContaining({ 'User-Agent': expect.any(String) }) })
+            expect.objectContaining({
+                headers: expect.objectContaining({ 'User-Agent': expect.any(String) }),
+            })
         );
     });
 
