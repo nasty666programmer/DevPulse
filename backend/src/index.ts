@@ -1,8 +1,10 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import bootstrap from './bootstrap.js';
 import dotenv from 'dotenv';
 import handleMiddleware from './middleware.js';
 import config from './modules/config/index.js';
+import openapiSpec from './openapi.js';
 import type MongoDB from './db/mongo.js';
 
 dotenv.config();
@@ -16,6 +18,16 @@ const container = await bootstrap();
 
 // Middlewares and handle routers
 await handleMiddleware(app, express, container);
+
+// Local testing only. NODE_ENV can't be the signal here — the same Docker image
+// runs both local docker-compose and Kubernetes, and the Dockerfile hardcodes
+// NODE_ENV=production for both (needed for `npm ci --omit=dev`). ENABLE_SWAGGER
+// mirrors ENABLE_IN_PROCESS_SCHEDULER: on by default, explicitly "false" in the
+// k8s ConfigMap for real prod.
+if (process.env.ENABLE_SWAGGER !== 'false') {
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+    console.log('📘 Swagger UI: /docs');
+}
 
 app.get('/', async (_req, res) => {
     res.send('RSS collection started');

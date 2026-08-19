@@ -31,6 +31,9 @@ wsl bash dev.sh
 
 После старта: backend — http://localhost:3000, frontend — http://localhost:5173.
 
+Swagger UI для ручного тестирования API — http://localhost:3000/docs (только локально,
+в проде не монтируется — см. `ENABLE_SWAGGER` в `backend/.env.example`).
+
 ## Локальный Mongo в Docker
 
 `docker compose up mongo -d` поднимает Mongo для локальной разработки, креды берутся из
