@@ -82,7 +82,7 @@ export function DigestCard({ status, digest, errorMessage, onRetry, onRefresh, i
       </div>
 
       {expanded && (
-        <div className="digest-card-body feed">
+        <div className="digest-card-body digest-card-items">
           {digest.articles.map((item) => (
             <ArticleCard key={item.id} item={item} />
           ))}

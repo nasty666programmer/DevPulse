@@ -327,10 +327,43 @@ main {
 
 /* ============ DIGEST CARD ============ */
 .digest-card {
+  position: relative;
+  z-index: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+/* A couple of card-shaped slivers peeking out from behind the bottom edge —
+   fixed height (not tied to the card's own, variable, expanded height) so the
+   "stack" reads the same whether collapsed or expanded. z-index:-1 relies on
+   the parent's own stacking context (position+z-index above) to stay behind
+   its background/border but never in front of real content, which paints
+   after these pseudo-elements regardless of DOM order. */
+.digest-card::before,
+.digest-card::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  z-index: -1;
+}
+.digest-card::before {
+  bottom: -7px;
+  transform: rotate(-1.25deg);
+}
+.digest-card::after {
+  bottom: -13px;
+  left: 20px;
+  right: 20px;
+  opacity: 0.7;
+  transform: rotate(1.25deg);
 }
 
 .digest-card-header {
@@ -381,6 +414,13 @@ main {
   margin-top: var(--space-5);
   padding-top: var(--space-5);
   border-top: 1px solid var(--border);
+}
+
+.digest-card-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
 }
 
 /* ============ ARTICLE CARD ============ */
