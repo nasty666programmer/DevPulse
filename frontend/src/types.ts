@@ -27,3 +27,21 @@ export type DigestDto = {
   generatedAt: string;
   articles: FeedItemDto[];
 };
+
+export type TelegramChannelDto = {
+  id: string;
+  channelId: number;
+  username: string | null;
+  title: string;
+  /** ISO date string — when the channel was registered via the bot. */
+  addedAt: string;
+};
+
+export type TelegramPostDto = {
+  id: string;
+  channelId: number;
+  text: string;
+  /** ISO date string. */
+  publishedAt: string;
+  mediaUrls: string[];
+};

@@ -1,4 +1,4 @@
-export type TabId = 'digest' | 'feed';
+export type TabId = 'digest' | 'feed' | 'telegram';
 
 type TabsProps = {
   activeTab: TabId;
@@ -8,6 +8,7 @@ type TabsProps = {
 const TAB_LABELS: Record<TabId, string> = {
   digest: 'Дайджест',
   feed: 'Лента',
+  telegram: 'Телеграм',
 };
 
 export function Tabs({ activeTab, onChange }: TabsProps) {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
+import { fetchTelegramChannels, fetchTelegramPosts } from './api/telegram';
 import { CategoryFilter } from './components/CategoryFilter';
 import { DigestCard } from './components/DigestCard';
 import { FeedList } from './components/FeedList';
@@ -8,9 +9,12 @@ import type { ListStatus } from './components/FeedList';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import type { TabId } from './components/Tabs';
+import { TelegramChannelList } from './components/TelegramChannelList';
+import { TelegramPostList } from './components/TelegramPostList';
+import type { TelegramPostListStatus } from './components/TelegramPostList';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
-import type { Category, DigestDto, FeedItemDto } from './types';
+import type { Category, DigestDto, FeedItemDto, TelegramChannelDto, TelegramPostDto } from './types';
 
 const FEED_LIMIT = 20;
 
@@ -43,6 +47,11 @@ export default function App() {
   const [feedErrorMessage, setFeedErrorMessage] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Category | null>(null);
 
+  const [telegramStatus, setTelegramStatus] = useState<TelegramPostListStatus>('loading');
+  const [telegramChannels, setTelegramChannels] = useState<TelegramChannelDto[]>([]);
+  const [telegramPosts, setTelegramPosts] = useState<TelegramPostDto[]>([]);
+  const [telegramErrorMessage, setTelegramErrorMessage] = useState('');
+
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -72,6 +81,21 @@ export default function App() {
     }
   }, [categoryFilter]);
 
+  const loadTelegram = useCallback(async () => {
+    setTelegramStatus('loading');
+    try {
+      // Independent lists, fetched together — a channel with no posts yet is
+      // still worth showing, so one failing doesn't block the other.
+      const [channels, posts] = await Promise.all([fetchTelegramChannels(), fetchTelegramPosts()]);
+      setTelegramChannels(channels);
+      setTelegramPosts(posts);
+      setTelegramStatus('ready');
+    } catch (err) {
+      setTelegramErrorMessage(describeError(err));
+      setTelegramStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     void loadDigest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,6 +106,10 @@ export default function App() {
   useEffect(() => {
     void loadFeed();
   }, [loadFeed]);
+
+  useEffect(() => {
+    void loadTelegram();
+  }, [loadTelegram]);
 
   // Full RSS collect — slow (real network fetches), also regenerates the digest
   // server-side, so it refreshes both tabs regardless of which one is open.
@@ -131,6 +159,10 @@ export default function App() {
     void loadFeed();
   }, [loadFeed]);
 
+  const handleRetryTelegram = useCallback(() => {
+    void loadTelegram();
+  }, [loadTelegram]);
+
   return (
     <>
       <Header
@@ -144,7 +176,7 @@ export default function App() {
         <div className="wrap">
           <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
-          {activeTab === 'digest' ? (
+          {activeTab === 'digest' && (
             <DigestCard
               status={digestStatus}
               digest={digest}
@@ -153,7 +185,9 @@ export default function App() {
               onRefresh={handleRefreshDigest}
               isRefreshing={isRefreshingDigest}
             />
-          ) : (
+          )}
+
+          {activeTab === 'feed' && (
             <>
               <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
               <FeedList
@@ -165,6 +199,19 @@ export default function App() {
                 isRefreshing={isRefreshing}
                 emptyTitle="Новостей пока нет"
                 emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
+              />
+            </>
+          )}
+
+          {activeTab === 'telegram' && (
+            <>
+              <TelegramChannelList channels={telegramChannels} />
+              <TelegramPostList
+                status={telegramStatus}
+                posts={telegramPosts}
+                channels={telegramChannels}
+                errorMessage={telegramErrorMessage}
+                onRetry={handleRetryTelegram}
               />
             </>
           )}
