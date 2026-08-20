@@ -303,6 +303,7 @@ main {
 /* ============ TABS ============ */
 .tabs {
   display: flex;
+  justify-content: center;
   gap: var(--space-2);
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--border);
@@ -399,6 +400,29 @@ main {
   font: 500 14px var(--font-ui);
   color: var(--text-meta);
   margin-bottom: var(--space-5);
+}
+
+.telegram-bot-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font: 500 14px var(--font-ui);
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 var(--space-5);
+}
+.telegram-bot-hint-icon {
+  flex-shrink: 0;
+}
+.telegram-bot-hint a {
+  color: var(--accent-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.telegram-bot-hint a:hover {
+  text-decoration: underline;
 }
 
 /* One column per channel (TweetDeck-style), side by side on wide viewports,

@@ -161,6 +161,27 @@ export function EmptyTrayIcon({ size = 40, className }: IconProps) {
   );
 }
 
+// Telegram's actual brand mark (blue circle + paper plane), not a
+// currentColor stroke icon like the rest of this file — used where the
+// Telegram tab specifically needs to be recognizable as Telegram.
+export function TelegramIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="12" fill="#29A9EB" />
+      <path
+        d="M17.94 7.28L15.9 17.33c-.15.7-.56.87-1.13.54l-3.13-2.31-1.51 1.45c-.17.17-.31.31-.63.31l.22-3.19 5.8-5.24c.25-.23-.05-.35-.39-.13l-7.16 4.51-3.09-.97c-.67-.21-.68-.67.14-1l12.06-4.65c.56-.2 1.05.13.86 1.03z"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
 export function PlayIcon({ size = 22, className }: IconProps) {
   return (
     <svg
