@@ -6,4 +6,5 @@ import type {
 export interface ITelegramChannelRepository {
     upsertByChannelId(channel: ITelegramChannel): Promise<ITelegramChannelDocument>;
     findAllWithUsername(): Promise<ITelegramChannelDocument[]>;
+    findAll(): Promise<ITelegramChannelDocument[]>;
 }

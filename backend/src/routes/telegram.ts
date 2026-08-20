@@ -8,6 +8,16 @@ export default class TelegramRoutes {
                 path: '/collect',
                 handler: 'collectTelegram',
             },
+            {
+                method: 'get',
+                path: '/channels',
+                handler: 'listChannels',
+            },
+            {
+                method: 'get',
+                path: '/posts',
+                handler: 'listPosts',
+            },
         ];
     }
 }

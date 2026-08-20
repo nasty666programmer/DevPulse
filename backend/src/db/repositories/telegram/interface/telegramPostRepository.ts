@@ -5,4 +5,5 @@ import type {
 
 export interface ITelegramPostRepository {
     create(post: ITelegramPost): Promise<ITelegramPostDocument>;
+    findRecent(limit: number): Promise<ITelegramPostDocument[]>;
 }

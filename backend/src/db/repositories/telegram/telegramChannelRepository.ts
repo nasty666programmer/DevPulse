@@ -20,4 +20,8 @@ export default class TelegramChannelRepository implements ITelegramChannelReposi
     async findAllWithUsername(): Promise<ITelegramChannelDocument[]> {
         return TelegramChannelModel.find({ username: { $ne: null } });
     }
+
+    async findAll(): Promise<ITelegramChannelDocument[]> {
+        return TelegramChannelModel.find().sort({ addedAt: -1 });
+    }
 }

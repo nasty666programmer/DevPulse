@@ -143,6 +143,73 @@ const openapiSpec = {
                 },
             },
         },
+        '/telegram/channels': {
+            get: {
+                summary: 'Все зарегистрированные Telegram-каналы',
+                tags: ['telegram'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: { type: 'string' },
+                                            channelId: { type: 'integer' },
+                                            username: { type: 'string', nullable: true },
+                                            title: { type: 'string' },
+                                            addedAt: { type: 'string', format: 'date-time' },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/telegram/posts': {
+            get: {
+                summary: 'Последние собранные посты по всем каналам',
+                tags: ['telegram'],
+                parameters: [
+                    {
+                        name: 'limit',
+                        in: 'query',
+                        required: false,
+                        schema: { type: 'integer' },
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            id: { type: 'string' },
+                                            channelId: { type: 'integer' },
+                                            text: { type: 'string' },
+                                            publishedAt: { type: 'string', format: 'date-time' },
+                                            mediaUrls: {
+                                                type: 'array',
+                                                items: { type: 'string' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         '/digest/latest': {
             get: {
                 summary: 'Последний сгенерированный дайджест',

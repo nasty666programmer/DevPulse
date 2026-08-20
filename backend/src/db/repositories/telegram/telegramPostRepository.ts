@@ -9,4 +9,8 @@ export default class TelegramPostRepository implements ITelegramPostRepository {
     async create(post: ITelegramPost): Promise<ITelegramPostDocument> {
         return TelegramPostModel.create(post);
     }
+
+    async findRecent(limit: number): Promise<ITelegramPostDocument[]> {
+        return TelegramPostModel.find().sort({ publishedAt: -1 }).limit(limit);
+    }
 }

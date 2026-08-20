@@ -72,6 +72,7 @@ describe('TelegramBotService.registerForwardedChannel', () => {
     let telegramChannelRepository: {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
+        findAll: Mock<ITelegramChannelRepository['findAll']>;
     };
     let service: TelegramBotService;
 
@@ -79,6 +80,7 @@ describe('TelegramBotService.registerForwardedChannel', () => {
         telegramChannelRepository = {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
+            findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
         };
         service = new TelegramBotService({ telegramChannelRepository });
     });
@@ -128,6 +130,7 @@ describe('TelegramBotService.start', () => {
         const telegramChannelRepository = {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
+            findAll: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -144,6 +147,7 @@ describe('TelegramBotService.start', () => {
         const telegramChannelRepository = {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
+            findAll: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -161,6 +165,7 @@ describe('TelegramBotService.start', () => {
         const telegramChannelRepository = {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
+            findAll: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -174,6 +179,7 @@ describe('TelegramBotService.registerChannelByUsername', () => {
     let telegramChannelRepository: {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
+        findAll: Mock<ITelegramChannelRepository['findAll']>;
     };
     let service: TelegramBotService;
 
@@ -182,6 +188,7 @@ describe('TelegramBotService.registerChannelByUsername', () => {
         telegramChannelRepository = {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
+            findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
         };
         service = new TelegramBotService({ telegramChannelRepository });
     });
@@ -240,6 +247,7 @@ describe('TelegramBotService handleMessage integration', () => {
     let telegramChannelRepository: {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
+        findAll: Mock<ITelegramChannelRepository['findAll']>;
     };
     let handleMessage: (ctx: unknown) => Promise<void>;
 
@@ -248,6 +256,7 @@ describe('TelegramBotService handleMessage integration', () => {
         telegramChannelRepository = {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
+            findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
         };
         new TelegramBotService({ telegramChannelRepository });
 
