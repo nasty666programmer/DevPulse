@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
 import config from '../config/index.js';
+import Logger from '../logger/index.js';
 import type { IRssCollector } from '../rss/interfaces/index.js';
 
 export default class SchedulerService {
@@ -19,7 +20,7 @@ export default class SchedulerService {
 
         this.task = cron.schedule(config.rssCronSchedule, () => {
             if (this.isCollecting) {
-                console.warn('[SchedulerService] Skipping RSS collect tick — previous run still in progress');
+                Logger.warn('[SchedulerService] Skipping RSS collect tick — previous run still in progress');
                 return;
             }
 
@@ -30,14 +31,14 @@ export default class SchedulerService {
             this.rssCollectorService
                 .collect()
                 .catch((err) => {
-                    console.error('[SchedulerService] Scheduled RSS collect failed:', err);
+                    Logger.error('[SchedulerService] Scheduled RSS collect failed', err);
                 })
                 .finally(() => {
                     this.isCollecting = false;
                 });
         });
 
-        console.log(`🕒 RSS collection scheduled: "${config.rssCronSchedule}"`);
+        Logger.info(`🕒 RSS collection scheduled: "${config.rssCronSchedule}"`);
     }
 
     stop() {

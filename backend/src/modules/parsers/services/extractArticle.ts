@@ -4,6 +4,7 @@ import { Readability } from '@mozilla/readability';
 import iconv from 'iconv-lite';
 import type { ExtractArticleOptions, ExtractedArticle } from '../interfaces/index.js';
 import { BlockedError, HttpStatusError, NetworkError, TimeoutError } from '../errors.js';
+import Logger from '../../logger/index.js';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_USER_AGENT =
@@ -75,7 +76,7 @@ async function fetchHtml(
         const originalHost = new URL(url).hostname;
         const finalHost = new URL(response.url).hostname;
         if (response.redirected && originalHost !== finalHost) {
-            console.warn(`[extractArticle] Redirected cross-domain: ${originalHost} -> ${finalHost} (${url})`);
+            Logger.warn(`[extractArticle] Redirected cross-domain: ${originalHost} -> ${finalHost} (${url})`);
         }
     } catch {
         // ignore malformed URL comparison, not fatal

@@ -1,5 +1,6 @@
 import { processFeedItems } from '../../parsers/services/processFeedItems.js';
 import config from '../../config/index.js';
+import Logger from '../../logger/index.js';
 import { isDuplicateKeyError } from '../../../common/utils.js';
 import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IFeedItemCreator } from '../../../db/repositories/feed/interface/feedItemRepository.js';
@@ -53,6 +54,8 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
      * A single source failing never aborts the others.
      */
     async collect(): Promise<number> {
+        Logger.info('[RssCollectorServices] Collect started', { sources: config.feedSources.length });
+
         const results = await Promise.allSettled(
             config.feedSources.map((sourceUrl) => this.collectFromSource(sourceUrl))
         );
@@ -70,14 +73,14 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
                 summary.htmlParseFailures += result.value.htmlParseFailures;
             } else {
                 failedSources.push(config.feedSources[i]);
-                console.error(
-                    `[RssCollectorServices] Failed to collect from "${config.feedSources[i]}":`,
+                Logger.error(
+                    `[RssCollectorServices] Failed to collect from "${config.feedSources[i]}"`,
                     result.reason
                 );
             }
         }
 
-        console.log('[RssCollectorServices] Collect finished:', { ...summary, failedSources });
+        Logger.info('[RssCollectorServices] Collect finished', { ...summary, failedSources });
 
         // Digest generation runs off the back of every collect — from the cron
         // tick, the manual /rss/collect endpoint, or bin/collect.ts — rather than
@@ -86,7 +89,7 @@ export default class RssCollectorServices implements IFeedFetcher, IRssCollector
         try {
             await this.digestService.generateDigest();
         } catch (error) {
-            console.error('[RssCollectorServices] Digest generation failed:', error);
+            Logger.error('[RssCollectorServices] Digest generation failed', error);
         }
 
         return summary.saved;

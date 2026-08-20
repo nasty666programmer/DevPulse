@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
 import config from '../config/index.js';
+import Logger from '../logger/index.js';
 import type { ITelegramCollector } from '../telegramCollector/interfaces/index.js';
 
 export default class TelegramSchedulerService {
@@ -19,7 +20,7 @@ export default class TelegramSchedulerService {
 
         this.task = cron.schedule(config.telegramCronSchedule, () => {
             if (this.isCollecting) {
-                console.warn(
+                Logger.warn(
                     '[TelegramSchedulerService] Skipping Telegram collect tick — previous run still in progress'
                 );
                 return;
@@ -30,8 +31,8 @@ export default class TelegramSchedulerService {
             this.telegramCollectorService
                 .collect()
                 .catch((err) => {
-                    console.error(
-                        '[TelegramSchedulerService] Scheduled Telegram collect failed:',
+                    Logger.error(
+                        '[TelegramSchedulerService] Scheduled Telegram collect failed',
                         err
                     );
                 })
@@ -40,7 +41,7 @@ export default class TelegramSchedulerService {
                 });
         });
 
-        console.log(`🕒 Telegram collection scheduled: "${config.telegramCronSchedule}"`);
+        Logger.info(`🕒 Telegram collection scheduled: "${config.telegramCronSchedule}"`);
     }
 
     stop() {

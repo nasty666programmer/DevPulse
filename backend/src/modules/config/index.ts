@@ -90,6 +90,9 @@ const config = {
     get telegramCronSchedule(): string {
         return process.env.TELEGRAM_CRON_SCHEDULE || DEFAULT_TELEGRAM_CRON_SCHEDULE;
     },
+    get logLevel(): string {
+        return process.env.LOG_LEVEL || 'info';
+    },
 };
 
 export default config;

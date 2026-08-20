@@ -1,4 +1,5 @@
 import { isDuplicateKeyError } from '../../../common/utils.js';
+import Logger from '../../logger/index.js';
 import type { IProvider } from '../../../providers/interfaces.js';
 import type { TelegramPost } from '../../../providers/telegram/TelegramProvider.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
@@ -33,11 +34,14 @@ export default class TelegramCollectorService implements ITelegramCollector {
     async collect(): Promise<number> {
         const channels = await this.telegramChannelRepository.findAllWithUsername();
 
+        Logger.info('[TelegramCollectorService] Collect started', { channels: channels.length });
+
         const results = await Promise.allSettled(
             channels.map((channel) => this.collectFromChannel(channel))
         );
 
         let saved = 0;
+        const failedChannels: string[] = [];
 
         for (let i = 0; i < results.length; i++) {
             const result = results[i];
@@ -45,12 +49,15 @@ export default class TelegramCollectorService implements ITelegramCollector {
             if (result.status === 'fulfilled') {
                 saved += result.value;
             } else {
-                console.error(
-                    `[TelegramCollectorService] Failed to collect from "@${channels[i].username}":`,
+                failedChannels.push(channels[i].username as string);
+                Logger.error(
+                    `[TelegramCollectorService] Failed to collect from "@${channels[i].username}"`,
                     result.reason
                 );
             }
         }
+
+        Logger.info('[TelegramCollectorService] Collect finished', { saved, failedChannels });
 
         return saved;
     }

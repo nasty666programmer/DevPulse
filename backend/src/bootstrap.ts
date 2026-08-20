@@ -3,6 +3,7 @@ import { createControllersContainer } from './controller/container.js';
 import { createServicesContainer } from './modules/container.js';
 import { createDatabaseContainer } from './db/container.js';
 import { createProvidersContainer } from './providers/container.js';
+import Logger from './modules/logger/index.js';
 import type MongoDB from './db/mongo.js';
 
 export default async function bootstrap() {
@@ -21,7 +22,7 @@ export default async function bootstrap() {
     const mongo = container.resolve<MongoDB>('mongo');
     await mongo.connect();
 
-    console.log('Application started');
+    Logger.info('Application started');
 
     return container;
 }

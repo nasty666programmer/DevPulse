@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Logger from '../modules/logger/index.js';
 
 export default class MongoDB {
     private readonly uri: string;
@@ -11,9 +12,9 @@ export default class MongoDB {
         try {
             await mongoose.connect(this.uri);
 
-            console.log('MongoDB connected');
+            Logger.info('MongoDB connected');
         } catch (error) {
-            console.error('MongoDB connection failed', error);
+            Logger.error('MongoDB connection failed', error);
             process.exit(1);
         }
     }
@@ -21,7 +22,7 @@ export default class MongoDB {
     async disconnect(): Promise<void> {
         await mongoose.disconnect();
 
-        console.log('MongoDB disconnected');
+        Logger.info('MongoDB disconnected');
     }
 
     async healthCheck(): Promise<boolean> {
@@ -32,11 +33,11 @@ export default class MongoDB {
 
             await mongoose.connection.db.admin().ping();
 
-            console.log('Mongo healthCheck is success');
+            Logger.info('Mongo healthCheck is success');
 
             return true;
         } catch (error) {
-            console.error('MongoDB health check failed', error);
+            Logger.error('MongoDB health check failed', error);
             return false;
         }
     }

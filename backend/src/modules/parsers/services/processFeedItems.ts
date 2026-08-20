@@ -2,6 +2,7 @@ import pLimit from 'p-limit';
 import { JSDOM } from 'jsdom';
 import { extractArticle } from './extractArticle.js';
 import { BlockedError } from '../errors.js';
+import Logger from '../../logger/index.js';
 import type { FeedItem, ProcessedFeedItem, ProcessFeedItemsOptions } from '../interfaces/index.js';
 
 function delay(ms: number) {
@@ -69,7 +70,7 @@ async function processSingleItem(
         const message = err instanceof Error ? err.message : String(err);
 
         options.onError?.(url, err);
-        console.error(`[processFeedItems] Failed to extract "${url}": ${message}`);
+        Logger.error(`[processFeedItems] Failed to extract "${url}"`, err);
 
         const fallback = fallbackContent(item);
         return { ...item, ...fallback, extractionStatus: status, extractionError: message };

@@ -2,6 +2,7 @@ import { Bot } from 'grammy';
 import type { Context } from 'grammy';
 import type { ChatFullInfo, MessageOriginChannel } from 'grammy/types';
 import config from '../../config/index.js';
+import Logger from '../../logger/index.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
 import type { ITelegramChannelDocument } from '../../../db/models/telegram/interface/telegramChannel.js';
 
@@ -33,7 +34,7 @@ export default class TelegramBotService {
 
     start() {
         if (!this.bot) {
-            console.warn('[TelegramBotService] TELEGRAM_BOT_TOKEN not set — bot not started.');
+            Logger.warn('[TelegramBotService] TELEGRAM_BOT_TOKEN not set — bot not started.');
             return;
         }
 
@@ -46,9 +47,9 @@ export default class TelegramBotService {
         // same token — Telegram allows only one) would otherwise crash the
         // whole process, taking the HTTP server and schedulers down with it.
         this.bot.start().catch((error) => {
-            console.error('[TelegramBotService] Polling loop stopped unexpectedly:', error);
+            Logger.error('[TelegramBotService] Polling loop stopped unexpectedly', error);
         });
-        console.log('🤖 Telegram bot started (long polling)');
+        Logger.info('🤖 Telegram bot started (long polling)');
     }
 
     stop() {
@@ -76,10 +77,7 @@ export default class TelegramBotService {
         try {
             channel = await this.registerChannelByUsername(username);
         } catch (error) {
-            console.error(
-                '[TelegramBotService] registerChannelByUsername failed:',
-                error instanceof Error ? error.message : error
-            );
+            Logger.error('[TelegramBotService] registerChannelByUsername failed', error);
             await ctx.reply('Канал не найден. Проверьте username и попробуйте снова.');
             return;
         }

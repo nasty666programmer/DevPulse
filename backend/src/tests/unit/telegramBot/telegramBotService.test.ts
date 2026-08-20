@@ -29,6 +29,7 @@ vi.mock('../../../modules/config/index.js', () => ({
 import TelegramBotService, {
     extractChannelUsername,
 } from '../../../modules/telegramBot/services/index.js';
+import Logger from '../../../modules/logger/index.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
 
 function channelOrigin(
@@ -140,7 +141,7 @@ describe('TelegramBotService.start', () => {
 
     it('logs and does not crash the process when the polling loop rejects', async () => {
         mockConfig.telegramBotToken = 'test-token';
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const loggerErrorSpy = vi.spyOn(Logger, 'error').mockImplementation(() => {});
         botStartMock.mockRejectedValue(
             new Error('409: Conflict: terminated by other getUpdates request')
         );
@@ -154,10 +155,12 @@ describe('TelegramBotService.start', () => {
         expect(() => service.start()).not.toThrow();
         await new Promise((resolve) => setImmediate(resolve));
 
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(loggerErrorSpy).toHaveBeenCalledWith(
             expect.stringContaining('[TelegramBotService]'),
             expect.any(Error)
         );
+
+        loggerErrorSpy.mockRestore();
     });
 
     it('starts long polling when a bot token is configured', () => {
@@ -317,7 +320,7 @@ describe('TelegramBotService handleMessage integration', () => {
 
     it('replies with a "not found" message and does not leak the raw error when registration fails', async () => {
         getChatMock.mockRejectedValue(new Error('Bad Request: chat not found'));
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const loggerErrorSpy = vi.spyOn(Logger, 'error').mockImplementation(() => {});
 
         const ctx = {
             message: { text: '@missing_channel' },
@@ -330,11 +333,11 @@ describe('TelegramBotService handleMessage integration', () => {
         expect(ctx.reply).toHaveBeenCalledWith(
             'Канал не найден. Проверьте username и попробуйте снова.'
         );
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-            '[TelegramBotService] registerChannelByUsername failed:',
-            'Bad Request: chat not found'
+        expect(loggerErrorSpy).toHaveBeenCalledWith(
+            '[TelegramBotService] registerChannelByUsername failed',
+            expect.any(Error)
         );
 
-        consoleErrorSpy.mockRestore();
+        loggerErrorSpy.mockRestore();
     });
 });

@@ -67,7 +67,7 @@ For each item it adds:
 - `extractionError?: string` — present for `blocked`/`error`.
 
 A failure on one item never rejects the whole batch — errors are caught, logged
-to `console.error` (and optionally to `options.onError`), and the item falls
+via `Logger.error` (and optionally to `options.onError`), and the item falls
 back to its RSS description/content.
 
 ## CLI (`bin/extract.ts`)

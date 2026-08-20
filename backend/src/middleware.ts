@@ -3,10 +3,11 @@ import fs from 'fs';
 
 import { fileURLToPath } from 'url';
 import { pathToFileURL } from 'url';
-import type { Express, Router } from 'express';
+import type { Express, Router, Request, Response, NextFunction } from 'express';
 import type { AwilixContainer } from 'awilix';
 import type { RouteClassStatic, RouteGroup } from './interfaces/route.js';
 import type { ResolvedController } from './interfaces/express.js';
+import Logger from './modules/logger/index.js';
 
 type ExpressModule = typeof import('express');
 
@@ -37,6 +38,19 @@ export default async function handleMiddleware(
 
     // Подключаем роутер
     app.use(router);
+
+    // Единая точка логирования и обработки ошибок, дошедших до next(error).
+    app.use(errorHandler);
+}
+
+function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+    Logger.error(`Unhandled error on ${req.method} ${req.originalUrl}`, err);
+
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    res.status(500).json({ error: 'Internal Server Error' });
 }
 
 async function buildRoutes(): Promise<RouteGroup[]> {
@@ -76,12 +90,14 @@ function registerRoutes(router: Router, routes: RouteGroup[]) {
         for (const route of definitions) {
             const { method, path, handler } = route;
 
-            console.log(`🚀 ${method.toUpperCase()} ${prefix + path}`);
+            Logger.info(`🚀 ${method.toUpperCase()} ${prefix + path}`);
 
             router[method](
                 prefix + path,
 
                 async (req, res, next) => {
+                    Logger.info(`${req.method} ${req.originalUrl}`);
+
                     try {
                         const controllerInstance = req.scope.resolve<ResolvedController>(controller);
                         const controllerMethod = controllerInstance[handler];

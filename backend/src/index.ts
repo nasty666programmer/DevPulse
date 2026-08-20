@@ -5,14 +5,13 @@ import dotenv from 'dotenv';
 import handleMiddleware from './middleware.js';
 import config from './modules/config/index.js';
 import openapiSpec from './openapi.js';
+import Logger from './modules/logger/index.js';
 import type MongoDB from './db/mongo.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = config.port;
-
-//TODO: Add error handler for some type: FeedError, DatabaseError, etc. and also add logging for errors
 
 const container = await bootstrap();
 
@@ -26,7 +25,7 @@ await handleMiddleware(app, express, container);
 // k8s ConfigMap for real prod.
 if (process.env.ENABLE_SWAGGER !== 'false') {
     app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
-    console.log('📘 Swagger UI: /docs');
+    Logger.info('📘 Swagger UI: /docs');
 }
 
 app.get('/', async (_req, res) => {
@@ -35,7 +34,7 @@ app.get('/', async (_req, res) => {
 
 // Start server
 const server = app.listen(PORT, () => {
-    console.log(`🚀 Server started on http://localhost:${PORT}`);
+    Logger.info(`🚀 Server started on http://localhost:${PORT}`);
 
     // In Kubernetes this is set to "false" — scheduling is handled by a separate
     // CronJob (bin/collect.ts) instead, since every replica running its own cron
@@ -58,7 +57,7 @@ const server = app.listen(PORT, () => {
 });
 
 process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully');
+    Logger.info('SIGTERM received, shutting down gracefully');
 
     server.close(async () => {
         const telegramBotService = container.resolve<{ stop: () => void }>('telegramBotService');
