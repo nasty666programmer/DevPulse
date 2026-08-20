@@ -135,6 +135,27 @@ describe('TelegramBotService.start', () => {
         expect(botStartMock).not.toHaveBeenCalled();
     });
 
+    it('logs and does not crash the process when the polling loop rejects', async () => {
+        mockConfig.telegramBotToken = 'test-token';
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        botStartMock.mockRejectedValue(
+            new Error('409: Conflict: terminated by other getUpdates request')
+        );
+        const telegramChannelRepository = {
+            upsertByChannelId: vi.fn(),
+            findAllWithUsername: vi.fn(),
+        };
+        const service = new TelegramBotService({ telegramChannelRepository });
+
+        expect(() => service.start()).not.toThrow();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            expect.stringContaining('[TelegramBotService]'),
+            expect.any(Error)
+        );
+    });
+
     it('starts long polling when a bot token is configured', () => {
         mockConfig.telegramBotToken = 'test-token';
         const telegramChannelRepository = {

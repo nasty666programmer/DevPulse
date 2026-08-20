@@ -40,7 +40,14 @@ export default class TelegramBotService {
         // Long polling — not a webhook. Works identically in local dev and in
         // the cluster without needing an inbound Ingress route or public DNS,
         // unlike a webhook which would need both.
-        void this.bot.start();
+        //
+        // bot.start() resolves only when the polling loop stops, so an
+        // unhandled rejection here (e.g. a 409 from a second poller on the
+        // same token — Telegram allows only one) would otherwise crash the
+        // whole process, taking the HTTP server and schedulers down with it.
+        this.bot.start().catch((error) => {
+            console.error('[TelegramBotService] Polling loop stopped unexpectedly:', error);
+        });
         console.log('🤖 Telegram bot started (long polling)');
     }
 
