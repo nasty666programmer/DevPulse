@@ -81,6 +81,27 @@ describe('TelegramProvider.fetch', () => {
         expect(posts[1].text).toBe('');
     });
 
+    it('deduplicates a video URL that appears more than once in the same post', async () => {
+        // Telegram's preview markup sometimes renders the same clip twice
+        // (e.g. a thumbnail <video> plus the full-res one) with an identical src.
+        const duplicateVideoHtml = `
+          <div class="tgme_widget_message_wrap">
+            <div class="tgme_widget_message" data-post="testchannel/104">
+              <video src="https://cdn.example/clip.mp4"></video>
+              <video src="https://cdn.example/clip.mp4"></video>
+              <a class="tgme_widget_message_date" href="https://t.me/testchannel/104">
+                <time class="time" datetime="2026-08-19T13:00:00+00:00">13:00</time>
+              </a>
+            </div>
+          </div>
+        `;
+        fetchMock.mockResolvedValue(htmlResponse(duplicateVideoHtml));
+
+        const posts = await provider.fetch('testchannel');
+
+        expect(posts[0].mediaUrls).toEqual(['https://cdn.example/clip.mp4']);
+    });
+
     it('preserves line breaks from <br> tags instead of collapsing them into a run-on string', async () => {
         const multiLineHtml = `
           <div class="tgme_widget_message_wrap">

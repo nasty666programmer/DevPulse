@@ -76,7 +76,10 @@ export default class TelegramProvider implements IProvider<TelegramPost> {
                 messageId,
                 text: cleanScrapedText($text.text()),
                 publishedAt: new Date(datetime),
-                mediaUrls,
+                // Telegram's preview markup sometimes renders the same clip
+                // twice (e.g. a thumbnail <video> plus the full-res one)
+                // with an identical src — collapse those before storing.
+                mediaUrls: [...new Set(mediaUrls)],
             });
         });
 
