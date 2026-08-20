@@ -1,7 +1,11 @@
 import type { TelegramChannelDto, TelegramPostDto } from '../types';
 import { parseErrorMessage } from './http';
 
-const DEFAULT_POSTS_LIMIT = 20;
+// Generous flat cap across all channels, not per-channel — the UI groups by
+// channel and shows up to 5 each (see TelegramPostList), so this just needs
+// to be large enough that no channel gets crowded out of the flat top-N by a
+// more active one.
+const DEFAULT_POSTS_LIMIT = 100;
 
 export async function fetchTelegramChannels(): Promise<TelegramChannelDto[]> {
   const res = await fetch('/telegram/channels');

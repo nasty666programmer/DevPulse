@@ -175,8 +175,10 @@ export default function App() {
       <main>
         <div className="wrap">
           <Tabs activeTab={activeTab} onChange={setActiveTab} />
+        </div>
 
-          {activeTab === 'digest' && (
+        {activeTab === 'digest' && (
+          <div className="wrap">
             <DigestCard
               status={digestStatus}
               digest={digest}
@@ -185,37 +187,40 @@ export default function App() {
               onRefresh={handleRefreshDigest}
               isRefreshing={isRefreshingDigest}
             />
-          )}
+          </div>
+        )}
 
-          {activeTab === 'feed' && (
-            <>
-              <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
-              <FeedList
-                status={feedStatus}
-                items={feedItems}
-                errorMessage={feedErrorMessage}
-                onRetry={handleRetryFeed}
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-                emptyTitle="Новостей пока нет"
-                emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
-              />
-            </>
-          )}
+        {activeTab === 'feed' && (
+          <div className="wrap">
+            <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
+            <FeedList
+              status={feedStatus}
+              items={feedItems}
+              errorMessage={feedErrorMessage}
+              onRetry={handleRetryFeed}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+              emptyTitle="Новостей пока нет"
+              emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
+            />
+          </div>
+        )}
 
-          {activeTab === 'telegram' && (
-            <>
-              <TelegramChannelList channels={telegramChannels} />
-              <TelegramPostList
-                status={telegramStatus}
-                posts={telegramPosts}
-                channels={telegramChannels}
-                errorMessage={telegramErrorMessage}
-                onRetry={handleRetryTelegram}
-              />
-            </>
-          )}
-        </div>
+        {activeTab === 'telegram' && (
+          // Wider than .wrap on purpose — the Telegram tab's per-channel post
+          // cards read better at full page width than the ~680px reading
+          // column the other tabs use.
+          <div className="wrap wrap--wide">
+            <TelegramChannelList channels={telegramChannels} />
+            <TelegramPostList
+              status={telegramStatus}
+              posts={telegramPosts}
+              channels={telegramChannels}
+              errorMessage={telegramErrorMessage}
+              onRetry={handleRetryTelegram}
+            />
+          </div>
+        )}
       </main>
     </>
   );
