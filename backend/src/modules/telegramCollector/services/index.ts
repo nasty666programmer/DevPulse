@@ -1,5 +1,6 @@
 import { isDuplicateKeyError } from '../../../common/utils.js';
 import Logger from '../../logger/index.js';
+import config from '../../config/index.js';
 import type { IProvider } from '../../../providers/interfaces.js';
 import type { TelegramPost } from '../../../providers/telegram/TelegramProvider.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
@@ -66,9 +67,13 @@ export default class TelegramCollectorService implements ITelegramCollector {
         // channel.username is guaranteed non-null: findAllWithUsername filters for it.
         const posts = await this.telegramProvider.fetch(channel.username as string);
 
+        // Posts arrive oldest-to-newest (t.me/s/<username>'s page order) — keep
+        // only the most recent N per run, not the whole visible page.
+        const recentPosts = posts.slice(-config.telegramPostsPerChannelLimit);
+
         let saved = 0;
 
-        for (const post of posts) {
+        for (const post of recentPosts) {
             try {
                 await this.telegramPostRepository.create({
                     channelId: channel.channelId,

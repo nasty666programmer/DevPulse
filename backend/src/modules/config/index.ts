@@ -5,7 +5,8 @@ const DEFAULT_FEED_SOURCES = [
 ];
 
 const DEFAULT_RSS_CRON_SCHEDULE = '0 * * * *';
-const DEFAULT_TELEGRAM_CRON_SCHEDULE = '0 * * * *';
+const DEFAULT_TELEGRAM_CRON_SCHEDULE = '*/30 * * * *';
+const DEFAULT_TELEGRAM_POSTS_PER_CHANNEL_LIMIT = 5;
 const DEFAULT_RSS_FETCH_CONCURRENCY = 3;
 const DEFAULT_PORT = 3000;
 const DEFAULT_ITEMS_LIMIT = 20;
@@ -89,6 +90,15 @@ const config = {
     // page, not a rate-limited API we're meant to hit as often as RSS.
     get telegramCronSchedule(): string {
         return process.env.TELEGRAM_CRON_SCHEDULE || DEFAULT_TELEGRAM_CRON_SCHEDULE;
+    },
+    // Caps how many of a channel's most-recent posts are considered per
+    // collect() run — t.me/s/<username> can return more than this, and we
+    // only want the freshest ones, not the whole visible history each time.
+    get telegramPostsPerChannelLimit(): number {
+        return parsePositiveInt(
+            process.env.TELEGRAM_POSTS_PER_CHANNEL_LIMIT,
+            DEFAULT_TELEGRAM_POSTS_PER_CHANNEL_LIMIT
+        );
     },
     get logLevel(): string {
         return process.env.LOG_LEVEL || 'info';

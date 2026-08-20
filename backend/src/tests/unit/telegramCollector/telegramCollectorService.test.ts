@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { Types } from 'mongoose';
+
+vi.mock('../../../modules/config/index.js', () => ({
+    default: { telegramPostsPerChannelLimit: 5 },
+}));
+
 import TelegramCollectorService from '../../../modules/telegramCollector/services/index.js';
 import type { ITelegramChannelRepository } from '../../../db/repositories/telegram/interface/telegramChannelRepository.js';
 import type { ITelegramPostRepository } from '../../../db/repositories/telegram/interface/telegramPostRepository.js';
@@ -122,6 +127,37 @@ describe('TelegramCollectorService.collect', () => {
         const saved = await service.collect();
 
         expect(saved).toBe(0);
+    });
+
+    it('only considers the N most recent posts per channel, per config.telegramPostsPerChannelLimit', async () => {
+        telegramChannelRepository.findAllWithUsername.mockResolvedValue([channel()]);
+        // Provider returns oldest-to-newest, matching t.me/s/<username>'s page order.
+        const sevenPosts = Array.from({ length: 7 }, (_, i) => ({
+            messageId: i + 1,
+            text: `Post ${i + 1}`,
+            publishedAt: new Date('2026-08-19'),
+            mediaUrls: [],
+        }));
+        telegramProvider.fetch.mockResolvedValue(sevenPosts);
+        telegramPostRepository.create.mockImplementation(async (post) => ({
+            _id: new Types.ObjectId(),
+            ...post,
+        }));
+
+        const saved = await service.collect();
+
+        expect(saved).toBe(5);
+        expect(telegramPostRepository.create).toHaveBeenCalledTimes(5);
+        // The 5 most recent = messageId 3..7 (the last 5 of the 7), not 1..5.
+        expect(telegramPostRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({ messageId: 3 })
+        );
+        expect(telegramPostRepository.create).not.toHaveBeenCalledWith(
+            expect.objectContaining({ messageId: 1 })
+        );
+        expect(telegramPostRepository.create).not.toHaveBeenCalledWith(
+            expect.objectContaining({ messageId: 2 })
+        );
     });
 
     it('propagates a non-duplicate-key error from the post repository as a channel failure', async () => {
