@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { TelegramPostDto } from '../types';
 import { formatArticleDate, toExcerpt, toParagraphs } from '../utils/text';
 import { ChevronDownIcon, ChevronUpIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
@@ -12,11 +12,34 @@ const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
 
 // Custom silent-autoplay-loop player (Telegram/Twitter-preview style) instead
 // of the browser's default <video controls> chrome — just a mute toggle.
+// Unmuting is scoped to "while this video is on screen": scrolling it out of
+// view re-mutes it, so audio never keeps playing from a card you've scrolled
+// past.
 function TelegramVideo({ src, className }: { src: string; className?: string }) {
   const [muted, setMuted] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          setMuted(true);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className={`telegram-video${className ? ` ${className}` : ''}`}>
+    <div ref={containerRef} className={`telegram-video${className ? ` ${className}` : ''}`}>
       <video src={src} muted={muted} loop autoPlay playsInline className="card-media-item" />
       <button
         type="button"
