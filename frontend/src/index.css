@@ -439,6 +439,13 @@ svg {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+.btn-ghost[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-ghost[disabled]:hover {
+  background: transparent;
+}
 
 .icon-btn {
   width: 36px;
@@ -611,6 +618,12 @@ svg {
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--border);
+}
+
+.telegram-channel-empty {
+  font: 500 14px var(--font-ui);
+  color: var(--text-meta);
+  margin: 0;
 }
 
 /* Posts read as a flowing column under their channel heading, not a stack of
@@ -1121,6 +1134,20 @@ svg {
 }
 .error-box .btn-ghost {
   margin-top: var(--space-4);
+}
+
+/* ============ PAGINATION ============ */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+}
+.pagination-label {
+  font: 500 13px var(--font-mono);
+  color: var(--text-meta);
+  white-space: nowrap;
 }
 
 /* ============ AUTH GATE ============ */

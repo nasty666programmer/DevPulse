@@ -26,6 +26,17 @@ const digestSchema = {
     },
 };
 
+const telegramChannelSchema = {
+    type: 'object',
+    properties: {
+        id: { type: 'string' },
+        channelId: { type: 'integer' },
+        username: { type: 'string', nullable: true },
+        title: { type: 'string' },
+        addedAt: { type: 'string', format: 'date-time' },
+    },
+};
+
 const userSchema = {
     type: 'object',
     properties: {
@@ -155,25 +166,49 @@ const openapiSpec = {
         },
         '/telegram/channels': {
             get: {
-                summary: 'Все зарегистрированные Telegram-каналы',
+                summary: 'Зарегистрированные Telegram-каналы — полный список либо постранично',
+                description:
+                    'Без ?page — полный плоский список (используется чипами-обзором каналов). ' +
+                    'С ?page — { channels, total, page, pageSize }, отсортировано как и без пагинации ' +
+                    '(по addedAt, самые новые первыми).',
                 tags: ['telegram'],
+                parameters: [
+                    {
+                        name: 'page',
+                        in: 'query',
+                        required: false,
+                        schema: { type: 'integer', minimum: 1 },
+                        description: '1-based. Присутствие этого параметра переключает форму ответа.',
+                    },
+                    {
+                        name: 'limit',
+                        in: 'query',
+                        required: false,
+                        schema: { type: 'integer', default: 4 },
+                        description: 'Размер страницы, только вместе с ?page.',
+                    },
+                ],
                 responses: {
                     '200': {
-                        description: 'OK',
+                        description: 'OK — форма ответа зависит от ?page (см. description)',
                         content: {
                             'application/json': {
                                 schema: {
-                                    type: 'array',
-                                    items: {
-                                        type: 'object',
-                                        properties: {
-                                            id: { type: 'string' },
-                                            channelId: { type: 'integer' },
-                                            username: { type: 'string', nullable: true },
-                                            title: { type: 'string' },
-                                            addedAt: { type: 'string', format: 'date-time' },
+                                    oneOf: [
+                                        { type: 'array', items: telegramChannelSchema },
+                                        {
+                                            type: 'object',
+                                            properties: {
+                                                channels: {
+                                                    type: 'array',
+                                                    items: telegramChannelSchema,
+                                                },
+                                                total: { type: 'integer' },
+                                                page: { type: 'integer' },
+                                                pageSize: { type: 'integer' },
+                                            },
                                         },
-                                    },
+                                    ],
                                 },
                             },
                         },
@@ -183,7 +218,7 @@ const openapiSpec = {
         },
         '/telegram/posts': {
             get: {
-                summary: 'Последние собранные посты по всем каналам',
+                summary: 'Последние собранные посты — по всем каналам либо только по указанным',
                 tags: ['telegram'],
                 parameters: [
                     {
@@ -191,6 +226,17 @@ const openapiSpec = {
                         in: 'query',
                         required: false,
                         schema: { type: 'integer' },
+                        description: 'Общий лимит. Игнорируется, если передан channelIds.',
+                    },
+                    {
+                        name: 'channelIds',
+                        in: 'query',
+                        required: false,
+                        schema: { type: 'string' },
+                        description:
+                            'Список channelId через запятую. При наличии — до ' +
+                            'TELEGRAM_POSTS_PER_CHANNEL_LIMIT постов на каждый указанный канал, ' +
+                            'вместо общего лимита по всем каналам сразу.',
                     },
                 ],
                 responses: {

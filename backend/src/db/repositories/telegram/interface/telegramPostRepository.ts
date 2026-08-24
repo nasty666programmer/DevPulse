@@ -6,4 +6,8 @@ import type {
 export interface ITelegramPostRepository {
     create(post: ITelegramPost): Promise<ITelegramPostDocument>;
     findRecent(limit: number): Promise<ITelegramPostDocument[]>;
+    findRecentByChannelIds(
+        channelIds: number[],
+        limitPerChannel: number
+    ): Promise<ITelegramPostDocument[]>;
 }

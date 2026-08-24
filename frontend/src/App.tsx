@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
-import { fetchTelegramChannels, fetchTelegramPosts } from './api/telegram';
+import { fetchTelegramChannels, fetchTelegramChannelsPage, fetchTelegramPostsForChannels } from './api/telegram';
 import { AuthGate } from './components/AuthGate';
 import { BottomNav } from './components/BottomNav';
 import { CategoryFilter } from './components/CategoryFilter';
@@ -22,6 +22,7 @@ import type { TabId } from './nav';
 import type { Category, DigestDto, FeedItemDto, TelegramChannelDto, TelegramPostDto } from './types';
 
 const FEED_LIMIT = 20;
+const TELEGRAM_CHANNELS_PER_PAGE = 4;
 
 function describeError(err: unknown): string {
   // A network-level failure (backend not running, CORS, DNS, etc.) surfaces as a
@@ -54,8 +55,13 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState<Category | null>(null);
 
   const [telegramStatus, setTelegramStatus] = useState<TelegramPostListStatus>('loading');
+  // Full, unpaginated — feeds the channel-chip overview row.
   const [telegramChannels, setTelegramChannels] = useState<TelegramChannelDto[]>([]);
-  const [telegramPosts, setTelegramPosts] = useState<TelegramPostDto[]>([]);
+  // Just the current page's channels/posts — feeds the paginated column view.
+  const [telegramPageChannels, setTelegramPageChannels] = useState<TelegramChannelDto[]>([]);
+  const [telegramPagePosts, setTelegramPagePosts] = useState<TelegramPostDto[]>([]);
+  const [telegramPage, setTelegramPage] = useState(1);
+  const [telegramPageCount, setTelegramPageCount] = useState(1);
   const [telegramErrorMessage, setTelegramErrorMessage] = useState('');
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -87,14 +93,24 @@ export default function App() {
     }
   }, [categoryFilter]);
 
-  const loadTelegram = useCallback(async () => {
+  const loadTelegram = useCallback(async (page: number) => {
     setTelegramStatus('loading');
     try {
-      // Independent lists, fetched together — a channel with no posts yet is
-      // still worth showing, so one failing doesn't block the other.
-      const [channels, posts] = await Promise.all([fetchTelegramChannels(), fetchTelegramPosts()]);
+      // The chip row's full list and the current page's channels are fetched
+      // together; a channel with no posts yet still gets its own (empty)
+      // column, so posts are fetched only once we know which channels are
+      // actually on this page.
+      const [channels, pageResult] = await Promise.all([
+        fetchTelegramChannels(),
+        fetchTelegramChannelsPage(page, TELEGRAM_CHANNELS_PER_PAGE),
+      ]);
+      const posts = await fetchTelegramPostsForChannels(
+        pageResult.channels.map((channel) => channel.channelId)
+      );
       setTelegramChannels(channels);
-      setTelegramPosts(posts);
+      setTelegramPageChannels(pageResult.channels);
+      setTelegramPagePosts(posts);
+      setTelegramPageCount(Math.max(1, Math.ceil(pageResult.total / pageResult.pageSize)));
       setTelegramStatus('ready');
     } catch (err) {
       setTelegramErrorMessage(describeError(err));
@@ -115,10 +131,12 @@ export default function App() {
     void loadFeed();
   }, [authStatus, loadFeed]);
 
+  // Re-runs on page change (loadTelegram is stable — it takes the page as an
+  // argument rather than closing over it) and covers the initial load.
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
-    void loadTelegram();
-  }, [authStatus, loadTelegram]);
+    void loadTelegram(telegramPage);
+  }, [authStatus, telegramPage, loadTelegram]);
 
   // Full RSS collect — slow (real network fetches), also regenerates the digest
   // server-side, so it refreshes both tabs regardless of which one is open.
@@ -169,8 +187,8 @@ export default function App() {
   }, [loadFeed]);
 
   const handleRetryTelegram = useCallback(() => {
-    void loadTelegram();
-  }, [loadTelegram]);
+    void loadTelegram(telegramPage);
+  }, [loadTelegram, telegramPage]);
 
   if (authStatus === 'loading') {
     return <div className="auth-loading" aria-hidden="true" />;
@@ -247,10 +265,13 @@ export default function App() {
                 <TelegramChannelList channels={telegramChannels} />
                 <TelegramPostList
                   status={telegramStatus}
-                  posts={telegramPosts}
-                  channels={telegramChannels}
+                  posts={telegramPagePosts}
+                  channels={telegramPageChannels}
                   errorMessage={telegramErrorMessage}
                   onRetry={handleRetryTelegram}
+                  page={telegramPage}
+                  pageCount={telegramPageCount}
+                  onPageChange={setTelegramPage}
                 />
               </>
             )}

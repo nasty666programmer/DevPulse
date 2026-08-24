@@ -31,10 +31,13 @@ describe('TelegramCollectorService.collect', () => {
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAll: Mock<ITelegramChannelRepository['findAll']>;
+        findPage: Mock<ITelegramChannelRepository['findPage']>;
+        count: Mock<ITelegramChannelRepository['count']>;
     };
     let telegramPostRepository: {
         create: Mock<ITelegramPostRepository['create']>;
         findRecent: Mock<ITelegramPostRepository['findRecent']>;
+        findRecentByChannelIds: Mock<ITelegramPostRepository['findRecentByChannelIds']>;
     };
     let service: TelegramCollectorService;
 
@@ -46,10 +49,13 @@ describe('TelegramCollectorService.collect', () => {
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
+            findPage: vi.fn<ITelegramChannelRepository['findPage']>(),
+            count: vi.fn<ITelegramChannelRepository['count']>(),
         };
         telegramPostRepository = {
             create: vi.fn<ITelegramPostRepository['create']>(),
             findRecent: vi.fn<ITelegramPostRepository['findRecent']>(),
+            findRecentByChannelIds: vi.fn<ITelegramPostRepository['findRecentByChannelIds']>(),
         };
 
         service = new TelegramCollectorService({
