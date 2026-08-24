@@ -620,6 +620,12 @@ svg {
   border-bottom: 1px solid var(--border);
 }
 
+.telegram-channel-empty {
+  font: 500 14px var(--font-ui);
+  color: var(--text-meta);
+  margin: 0;
+}
+
 /* Posts read as a flowing column under their channel heading, not a stack of
    boxed cards — the heading already names the channel, so a per-post glass
    frame just repeated that context. A hairline divider (not on the first

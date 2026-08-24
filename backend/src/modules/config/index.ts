@@ -11,6 +11,7 @@ const DEFAULT_RSS_FETCH_CONCURRENCY = 3;
 const DEFAULT_PORT = 3000;
 const DEFAULT_ITEMS_LIMIT = 20;
 const DEFAULT_FEEDS_PAGE_SIZE = 5;
+const DEFAULT_TELEGRAM_CHANNELS_PAGE_SIZE = 4;
 const DEFAULT_SESSION_COOKIE_NAME = 'devpulse_session';
 const DEFAULT_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
@@ -113,6 +114,14 @@ const config = {
     },
     get logLevel(): string {
         return process.env.LOG_LEVEL || 'info';
+    },
+    // Default page size for GET /telegram/channels?page= — the frontend's
+    // Telegram tab shows this many channel columns per page.
+    get telegramChannelsPageSize(): number {
+        return parsePositiveInt(
+            process.env.TELEGRAM_CHANNELS_PAGE_SIZE,
+            DEFAULT_TELEGRAM_CHANNELS_PAGE_SIZE
+        );
     },
     // OAuth client ID from Google Cloud Console — also the JWT audience the
     // frontend's ID token must carry. No fallback: GoogleAuthProvider would

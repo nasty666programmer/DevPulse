@@ -74,6 +74,8 @@ describe('TelegramBotService.registerForwardedChannel', () => {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
         findAll: Mock<ITelegramChannelRepository['findAll']>;
+        findPage: Mock<ITelegramChannelRepository['findPage']>;
+        count: Mock<ITelegramChannelRepository['count']>;
     };
     let service: TelegramBotService;
 
@@ -82,6 +84,8 @@ describe('TelegramBotService.registerForwardedChannel', () => {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
             findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
+            findPage: vi.fn<ITelegramChannelRepository['findPage']>(),
+            count: vi.fn<ITelegramChannelRepository['count']>(),
         };
         service = new TelegramBotService({ telegramChannelRepository });
     });
@@ -132,6 +136,8 @@ describe('TelegramBotService.start', () => {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
             findAll: vi.fn(),
+            findPage: vi.fn(),
+            count: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -149,6 +155,8 @@ describe('TelegramBotService.start', () => {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
             findAll: vi.fn(),
+            findPage: vi.fn(),
+            count: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -169,6 +177,8 @@ describe('TelegramBotService.start', () => {
             upsertByChannelId: vi.fn(),
             findAllWithUsername: vi.fn(),
             findAll: vi.fn(),
+            findPage: vi.fn(),
+            count: vi.fn(),
         };
         const service = new TelegramBotService({ telegramChannelRepository });
 
@@ -183,6 +193,8 @@ describe('TelegramBotService.registerChannelByUsername', () => {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
         findAll: Mock<ITelegramChannelRepository['findAll']>;
+        findPage: Mock<ITelegramChannelRepository['findPage']>;
+        count: Mock<ITelegramChannelRepository['count']>;
     };
     let service: TelegramBotService;
 
@@ -192,6 +204,8 @@ describe('TelegramBotService.registerChannelByUsername', () => {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
             findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
+            findPage: vi.fn<ITelegramChannelRepository['findPage']>(),
+            count: vi.fn<ITelegramChannelRepository['count']>(),
         };
         service = new TelegramBotService({ telegramChannelRepository });
     });
@@ -251,6 +265,8 @@ describe('TelegramBotService handleMessage integration', () => {
         upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
         findAll: Mock<ITelegramChannelRepository['findAll']>;
+        findPage: Mock<ITelegramChannelRepository['findPage']>;
+        count: Mock<ITelegramChannelRepository['count']>;
     };
     let handleMessage: (ctx: unknown) => Promise<void>;
 
@@ -260,6 +276,8 @@ describe('TelegramBotService handleMessage integration', () => {
             upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
             findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
+            findPage: vi.fn<ITelegramChannelRepository['findPage']>(),
+            count: vi.fn<ITelegramChannelRepository['count']>(),
         };
         new TelegramBotService({ telegramChannelRepository });
 
