@@ -26,6 +26,16 @@ const digestSchema = {
     },
 };
 
+const userSchema = {
+    type: 'object',
+    properties: {
+        id: { type: 'string' },
+        email: { type: 'string' },
+        name: { type: 'string' },
+        avatarUrl: { type: 'string', nullable: true },
+    },
+};
+
 const openapiSpec = {
     openapi: '3.0.3',
     info: {
@@ -235,6 +245,65 @@ const openapiSpec = {
                         description: 'OK',
                         content: { 'application/json': { schema: digestSchema } },
                     },
+                },
+            },
+        },
+        '/auth/google': {
+            post: {
+                summary: 'Обменять Google ID-токен на сессию',
+                description:
+                    'Тело: { idToken }. При успехе ставит httpOnly-сессионную куку и возвращает профиль пользователя.',
+                tags: ['auth'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['idToken'],
+                                properties: { idToken: { type: 'string' } },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: { type: 'object', properties: { user: userSchema } },
+                            },
+                        },
+                    },
+                    '400': { description: 'idToken отсутствует в теле запроса' },
+                    '401': { description: 'Google ID-токен не прошёл проверку' },
+                },
+            },
+        },
+        '/auth/me': {
+            get: {
+                summary: 'Текущий авторизованный пользователь по сессионной куке',
+                tags: ['auth'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: { type: 'object', properties: { user: userSchema } },
+                            },
+                        },
+                    },
+                    '401': { description: 'Кука отсутствует или сессия недействительна' },
+                },
+            },
+        },
+        '/auth/logout': {
+            post: {
+                summary: 'Завершить сессию',
+                description: 'Очищает сессионную куку. Стейтлесс — на сервере ничего не инвалидируется.',
+                tags: ['auth'],
+                responses: {
+                    '204': { description: 'Кука очищена' },
                 },
             },
         },

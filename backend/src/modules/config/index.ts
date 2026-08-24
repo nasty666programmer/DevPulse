@@ -11,6 +11,9 @@ const DEFAULT_RSS_FETCH_CONCURRENCY = 3;
 const DEFAULT_PORT = 3000;
 const DEFAULT_ITEMS_LIMIT = 20;
 const DEFAULT_FEEDS_PAGE_SIZE = 5;
+const DEFAULT_SESSION_COOKIE_NAME = 'devpulse_session';
+const DEFAULT_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
 
 /**
  * RSS_FEEDS supports either a flat array of URL strings, a flat array of
@@ -59,6 +62,14 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseBoolean(raw: string | undefined, fallback: boolean): boolean {
+    if (raw === undefined) {
+        return fallback;
+    }
+
+    return raw !== 'false';
+}
+
 // Read process.env lazily (via getters) rather than once at module load: ESM
 // import hoisting means this module can be evaluated before index.ts calls
 // dotenv.config(), so a plain top-level read would always see an empty env.
@@ -102,6 +113,36 @@ const config = {
     },
     get logLevel(): string {
         return process.env.LOG_LEVEL || 'info';
+    },
+    // OAuth client ID from Google Cloud Console — also the JWT audience the
+    // frontend's ID token must carry. No fallback: GoogleAuthProvider would
+    // silently reject every sign-in against an empty audience if this were
+    // left unset, so let a missing value surface as an obvious empty string
+    // rather than a plausible-looking default.
+    get googleClientId(): string {
+        return process.env.GOOGLE_CLIENT_ID || '';
+    },
+    // Secret used to sign/verify our own session cookie (a JWT carrying just
+    // the user id) — unrelated to Google's keys, which google-auth-library
+    // fetches and verifies against on its own.
+    get sessionSecret(): string {
+        return process.env.SESSION_SECRET || '';
+    },
+    get sessionCookieName(): string {
+        return process.env.SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME;
+    },
+    get sessionMaxAgeMs(): number {
+        return parsePositiveInt(process.env.SESSION_MAX_AGE_MS, DEFAULT_SESSION_MAX_AGE_MS);
+    },
+    // Only disable for local http:// dev — browsers drop `Secure` cookies
+    // over plain http, which would otherwise break sign-in outside https.
+    get cookieSecure(): boolean {
+        return parseBoolean(process.env.COOKIE_SECURE, true);
+    },
+    // Credentialed CORS requires one explicit origin — an "*" wildcard is
+    // rejected by browsers whenever credentials: 'include' is used.
+    get corsOrigin(): string {
+        return process.env.CORS_ORIGIN || DEFAULT_CORS_ORIGIN;
     },
 };
 
