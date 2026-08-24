@@ -1,7 +1,13 @@
 name: Build, Push and Deploy
 
 on:
-  workflow_dispatch: # manual only — run from the Actions tab: "Build, Push and Deploy" → "Run workflow"
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # manual re-run — Actions tab: "Build, Push and Deploy" → "Run workflow"
 
 permissions:
   contents: read
@@ -42,6 +48,12 @@ jobs:
         with:
           context: ./frontend
           push: true
+          # Vite inlines this at build time — must be passed here, not just set
+          # as a runtime k8s env var, or the built bundle ships with sign-in
+          # broken (empty client id). Repo variable, not a secret: this id is
+          # public by design, it ends up embedded in the shipped JS either way.
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
