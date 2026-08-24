@@ -3,6 +3,12 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 
+# VITE_-prefixed vars are inlined into the JS bundle at build time (Vite),
+# not read at container runtime — a k8s Secret/ConfigMap change alone does
+# nothing here. Pass the real value via --build-arg when building the image.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 COPY package*.json ./
 RUN npm ci
 
