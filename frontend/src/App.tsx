@@ -3,19 +3,22 @@ import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
 import { fetchTelegramChannels, fetchTelegramPosts } from './api/telegram';
 import { AuthGate } from './components/AuthGate';
+import { BottomNav } from './components/BottomNav';
 import { CategoryFilter } from './components/CategoryFilter';
 import { DigestCard } from './components/DigestCard';
 import { FeedList } from './components/FeedList';
 import type { ListStatus } from './components/FeedList';
-import { Header } from './components/Header';
-import { Tabs } from './components/Tabs';
-import type { TabId } from './components/Tabs';
+import { RefreshIcon } from './components/icons';
+import { MobileTopBar } from './components/MobileTopBar';
+import { Sidebar } from './components/Sidebar';
 import { TelegramChannelList } from './components/TelegramChannelList';
 import { TelegramPostList } from './components/TelegramPostList';
 import type { TelegramPostListStatus } from './components/TelegramPostList';
 import { useAuth } from './hooks/useAuth';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
+import { NAV_ITEMS } from './nav';
+import type { TabId } from './nav';
 import type { Category, DigestDto, FeedItemDto, TelegramChannelDto, TelegramPostDto } from './types';
 
 const FEED_LIMIT = 20;
@@ -177,67 +180,85 @@ export default function App() {
     return <AuthGate onCredential={signIn} errorMessage={authErrorMessage} />;
   }
 
+  const activeLabel = NAV_ITEMS.find((item) => item.id === activeTab)?.label ?? '';
+
   return (
-    <>
-      <Header
+    <div className="app-shell">
+      <Sidebar
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
         theme={theme}
         onToggleTheme={toggleTheme}
-        lastUpdatedText={lastUpdatedText}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
         user={user}
         onSignOut={signOut}
+        lastUpdatedText={lastUpdatedText}
       />
-      <main>
-        <div className="wrap">
-          <Tabs activeTab={activeTab} onChange={setActiveTab} />
-        </div>
 
-        {activeTab === 'digest' && (
-          <div className="wrap">
-            <DigestCard
-              status={digestStatus}
-              digest={digest}
-              errorMessage={digestErrorMessage}
-              onRetry={handleRetryDigest}
-              onRefresh={handleRefreshDigest}
-              isRefreshing={isRefreshingDigest}
-            />
-          </div>
-        )}
+      <div className="app-main">
+        <MobileTopBar theme={theme} onToggleTheme={toggleTheme} user={user} onSignOut={signOut} />
 
-        {activeTab === 'feed' && (
-          <div className="wrap">
-            <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
-            <FeedList
-              status={feedStatus}
-              items={feedItems}
-              errorMessage={feedErrorMessage}
-              onRetry={handleRetryFeed}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-              emptyTitle="Новостей пока нет"
-              emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
-            />
-          </div>
-        )}
+        <main className="content-area">
+          <div className={activeTab === 'telegram' ? 'wrap wrap--wide' : 'wrap'}>
+            <div className="content-topbar">
+              <span className="content-title">{activeLabel}</span>
+              <div className="content-topbar-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  aria-busy={isRefreshing}
+                >
+                  <RefreshIcon className={isRefreshing ? 'spin-icon' : undefined} />
+                  <span className="btn-label">{isRefreshing ? 'Обновляем…' : 'Обновить'}</span>
+                </button>
+              </div>
+            </div>
 
-        {activeTab === 'telegram' && (
-          // Wider than .wrap on purpose — the Telegram tab's per-channel post
-          // cards read better at full page width than the ~680px reading
-          // column the other tabs use.
-          <div className="wrap wrap--wide">
-            <TelegramChannelList channels={telegramChannels} />
-            <TelegramPostList
-              status={telegramStatus}
-              posts={telegramPosts}
-              channels={telegramChannels}
-              errorMessage={telegramErrorMessage}
-              onRetry={handleRetryTelegram}
-            />
+            {activeTab === 'digest' && (
+              <DigestCard
+                status={digestStatus}
+                digest={digest}
+                errorMessage={digestErrorMessage}
+                onRetry={handleRetryDigest}
+                onRefresh={handleRefreshDigest}
+                isRefreshing={isRefreshingDigest}
+              />
+            )}
+
+            {activeTab === 'feed' && (
+              <>
+                <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
+                <FeedList
+                  status={feedStatus}
+                  items={feedItems}
+                  errorMessage={feedErrorMessage}
+                  onRetry={handleRetryFeed}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isRefreshing}
+                  emptyTitle="Новостей пока нет"
+                  emptyCaption="Нажмите «Обновить», чтобы собрать свежие статьи из источников."
+                />
+              </>
+            )}
+
+            {activeTab === 'telegram' && (
+              <>
+                <TelegramChannelList channels={telegramChannels} />
+                <TelegramPostList
+                  status={telegramStatus}
+                  posts={telegramPosts}
+                  channels={telegramChannels}
+                  errorMessage={telegramErrorMessage}
+                  onRetry={handleRetryTelegram}
+                />
+              </>
+            )}
           </div>
-        )}
-      </main>
-    </>
+        </main>
+      </div>
+
+      <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} />
+    </div>
   );
 }

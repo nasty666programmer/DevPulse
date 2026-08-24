@@ -46,6 +46,11 @@ export function estimateReadingMinutes(content: string): number {
   return Math.max(1, Math.round(words / READING_WPM));
 }
 
+/** First letter of a display name, uppercased — the fallback avatar glyph. */
+export function userInitial(name: string): string {
+  return name.trim().slice(0, 1).toUpperCase() || '?';
+}
+
 /** Format an ISO date string as "17 авг, 08:14" (ru locale, short month). */
 export function formatArticleDate(iso: string): string {
   const date = new Date(iso);
