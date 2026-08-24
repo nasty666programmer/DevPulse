@@ -12,6 +12,7 @@ export default defineConfig({
       '/rss': 'http://localhost:3000',
       '/digest': 'http://localhost:3000',
       '/telegram': 'http://localhost:3000',
+      '/auth': 'http://localhost:3000',
     },
   },
 })

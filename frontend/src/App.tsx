@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
 import { fetchTelegramChannels, fetchTelegramPosts } from './api/telegram';
+import { AuthGate } from './components/AuthGate';
 import { CategoryFilter } from './components/CategoryFilter';
 import { DigestCard } from './components/DigestCard';
 import { FeedList } from './components/FeedList';
@@ -12,6 +13,7 @@ import type { TabId } from './components/Tabs';
 import { TelegramChannelList } from './components/TelegramChannelList';
 import { TelegramPostList } from './components/TelegramPostList';
 import type { TelegramPostListStatus } from './components/TelegramPostList';
+import { useAuth } from './hooks/useAuth';
 import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
 import type { Category, DigestDto, FeedItemDto, TelegramChannelDto, TelegramPostDto } from './types';
@@ -34,6 +36,7 @@ function describeError(err: unknown): string {
 }
 
 export default function App() {
+  const { status: authStatus, user, errorMessage: authErrorMessage, signIn, signOut } = useAuth();
   const [theme, toggleTheme] = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>('digest');
 
@@ -97,19 +100,22 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (authStatus !== 'authenticated') return;
     void loadDigest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authStatus]);
 
   // Re-runs whenever categoryFilter changes (loadFeed's identity changes with it),
   // and also covers the initial load.
   useEffect(() => {
+    if (authStatus !== 'authenticated') return;
     void loadFeed();
-  }, [loadFeed]);
+  }, [authStatus, loadFeed]);
 
   useEffect(() => {
+    if (authStatus !== 'authenticated') return;
     void loadTelegram();
-  }, [loadTelegram]);
+  }, [authStatus, loadTelegram]);
 
   // Full RSS collect — slow (real network fetches), also regenerates the digest
   // server-side, so it refreshes both tabs regardless of which one is open.
@@ -163,6 +169,14 @@ export default function App() {
     void loadTelegram();
   }, [loadTelegram]);
 
+  if (authStatus === 'loading') {
+    return <div className="auth-loading" aria-hidden="true" />;
+  }
+
+  if (authStatus === 'unauthenticated' || !user) {
+    return <AuthGate onCredential={signIn} errorMessage={authErrorMessage} />;
+  }
+
   return (
     <>
       <Header
@@ -171,6 +185,8 @@ export default function App() {
         lastUpdatedText={lastUpdatedText}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
+        user={user}
+        onSignOut={signOut}
       />
       <main>
         <div className="wrap">

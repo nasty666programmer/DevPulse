@@ -199,6 +199,41 @@ svg {
   }
 }
 
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.user-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font: 600 12px var(--font-ui);
+}
+.user-name {
+  font: 600 13.5px var(--font-ui);
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 639px) {
+  .user-name {
+    display: none;
+  }
+}
+
 /* ============ BUTTONS ============ */
 .btn {
   display: inline-flex;
@@ -957,4 +992,69 @@ main {
 }
 .error-box .btn-ghost {
   margin-top: var(--space-4);
+}
+
+/* ============ AUTH GATE ============ */
+/* Full-viewport — App renders this instead of the header/tabs/content while
+   unauthenticated, over the same blurred-blob background as the rest of the
+   app (body::before/::after), so the gate doesn't feel like a different app. */
+.auth-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+.auth-gate-panel {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  padding: var(--space-8) var(--space-7);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 var(--glass-highlight);
+}
+.auth-gate-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 700 22px var(--font-ui);
+  letter-spacing: -0.015em;
+}
+.auth-gate-brand .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.auth-gate-caption {
+  font: 400 15px/1.55 var(--font-ui);
+  color: var(--text-secondary);
+  margin: 0;
+}
+.auth-gate-button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-gate-error {
+  font: 500 13.5px/1.5 var(--font-ui);
+  color: var(--danger);
+  margin: 0;
+}
+
+.auth-loading {
+  min-height: 100vh;
+  background: var(--bg);
 }
