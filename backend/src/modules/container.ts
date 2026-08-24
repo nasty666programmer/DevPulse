@@ -9,6 +9,7 @@ import CategorizationService from './categorization/services/index.js';
 import TelegramBotService from './telegramBot/services/index.js';
 import TelegramCollectorService from './telegramCollector/services/index.js';
 import TelegramSchedulerService from './telegramScheduler/index.js';
+import AuthService from './auth/services/index.js';
 
 export function createServicesContainer(container: AwilixContainer) {
     return container.register({
@@ -21,5 +22,6 @@ export function createServicesContainer(container: AwilixContainer) {
         telegramBotService: asClass(TelegramBotService).scoped(),
         telegramCollectorService: asClass(TelegramCollectorService).scoped(),
         telegramSchedulerService: asClass(TelegramSchedulerService).scoped(),
+        authService: asClass(AuthService).scoped(),
     });
 }

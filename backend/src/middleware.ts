@@ -3,11 +3,14 @@ import fs from 'fs';
 
 import { fileURLToPath } from 'url';
 import { pathToFileURL } from 'url';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import type { Express, Router, Request, Response, NextFunction } from 'express';
 import type { AwilixContainer } from 'awilix';
 import type { RouteClassStatic, RouteGroup } from './interfaces/route.js';
 import type { ResolvedController } from './interfaces/express.js';
 import Logger from './modules/logger/index.js';
+import config from './modules/config/index.js';
 
 type ExpressModule = typeof import('express');
 
@@ -19,6 +22,11 @@ export default async function handleMiddleware(
     express: ExpressModule,
     container: AwilixContainer
 ) {
+    // credentials: true + an explicit origin (never "*") — the session cookie
+    // set by /auth/google is httpOnly, so the browser must be allowed to send
+    // it cross-origin when the frontend isn't served from the same host.
+    app.use(cors({ origin: config.corsOrigin, credentials: true }));
+    app.use(cookieParser());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
