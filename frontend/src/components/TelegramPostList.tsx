@@ -79,7 +79,7 @@ export function TelegramPostList({
             <h2 className="telegram-channel-heading">{channelTitle}</h2>
             <div className="feed">
               {channelPosts.map((post) => (
-                <TelegramPostCard key={post.id} post={post} channelTitle={channelTitle} />
+                <TelegramPostCard key={post.id} post={post} />
               ))}
             </div>
           </section>

@@ -23,7 +23,6 @@ html[data-theme='dark'] {
   --glass-bg: rgba(26, 29, 36, 0.55);
   --glass-border: rgba(255, 255, 255, 0.09);
   --glass-highlight: rgba(255, 255, 255, 0.06);
-  --telegram-glass-bg: rgba(26, 29, 36, 0.28);
   color-scheme: dark;
 }
 
@@ -50,7 +49,6 @@ html[data-theme='light'] {
   --glass-bg: rgba(255, 255, 255, 0.55);
   --glass-border: rgba(255, 255, 255, 0.7);
   --glass-highlight: rgba(255, 255, 255, 0.5);
-  --telegram-glass-bg: rgba(255, 255, 255, 0.32);
   color-scheme: light;
 }
 
@@ -150,8 +148,10 @@ svg {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-elevated) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
 }
 .app-header .wrap {
   height: 60px;
@@ -431,6 +431,13 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   align-items: start;
+  gap: var(--space-7);
+}
+
+/* More air between posts within a column than the RSS feed's card gap —
+   without the per-post glass frame below, tighter spacing would read as a
+   wall of text instead of distinct posts. */
+.telegram-channel-groups .feed {
   gap: var(--space-6);
 }
 
@@ -442,29 +449,28 @@ main {
   border-bottom: 1px solid var(--border);
 }
 
-/* Telegram post cards read bigger than a feed card and lean near-square when
-   they're full — a scoped modifier so the shared .card rules used by the RSS
-   feed and digest stay untouched. Glass background (same recipe as
-   .digest-card) instead of the feed's flat surface, since these sit over
-   the new blue blur blobs. `.card.telegram-post-card` (both classes) beats
-   the plain `.card:hover` rule's specificity so hover doesn't flatten it
-   back to --surface-hover.
+/* Posts read as a flowing column under their channel heading, not a stack of
+   boxed cards — the heading already names the channel, so a per-post glass
+   frame just repeated that context. A hairline divider (not on the first
+   post in a column) separates entries instead of a border/blur/shadow each.
    Height is content-driven, not forced: a short post shouldn't stretch to
    fill a tall card. The line-clamp below is what keeps a long post from
-   exceeding roughly the old fixed 380px default — no min-height, no flex:1
-   pulling the excerpt down to fill leftover space. */
+   growing unreasonably tall — no min-height, no flex:1 pulling the excerpt
+   down to fill leftover space. */
 .card.telegram-post-card {
   display: flex;
   flex-direction: column;
-  background: var(--telegram-glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-color: var(--glass-border);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+.telegram-channel-groups .feed .card.telegram-post-card:not(:first-child) {
+  padding-top: var(--space-6);
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 6%, transparent);
 }
 .card.telegram-post-card:hover {
-  background: var(--telegram-glass-bg);
-  border-color: var(--glass-border);
+  background: transparent;
 }
 .telegram-post-card .card-excerpt,
 .telegram-post-card .card-body {
@@ -532,14 +538,14 @@ main {
   flex-direction: column;
   justify-content: center;
   background: var(--glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: 28px;
   padding: var(--space-7);
   margin-bottom: var(--space-5);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.16),
+    0 24px 64px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 var(--glass-highlight);
   transition:
     transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
@@ -552,7 +558,7 @@ main {
   justify-content: flex-start;
   transform: scale(1.015);
   box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.22),
+    0 32px 80px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 var(--glass-highlight);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -597,7 +603,7 @@ main {
 .digest-card-title {
   font: 700 26px var(--font-ui);
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .digest-card-meta {
@@ -607,6 +613,22 @@ main {
 .digest-card-meta .sep {
   margin: 0 6px;
   opacity: 0.6;
+}
+
+/* Always visible (collapsed and expanded) — a one-line preview of what's in
+   today's digest, so the collapsed card isn't just a title and a button. */
+.digest-card-summary {
+  margin: var(--space-5) 0 0;
+  font: 400 15.5px/1.6 var(--font-ui);
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.digest-card-summary-label {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .digest-card-body {
@@ -620,6 +642,25 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-4);
   align-items: start;
+}
+
+/* The lead story reads as a hero — full width, bigger title — so the digest
+   has a focal point instead of a flat, uniform grid. The closing story
+   (when there's more than one) gets the same full-width treatment as a
+   quieter "footnote" card, so the grid doesn't end on a lone half-empty row. */
+.digest-card-items .card:first-child {
+  grid-column: 1 / -1;
+  padding: var(--space-6);
+}
+.digest-card-items .card:first-child:not(.is-expanded) .card-title {
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+.digest-card-items .card:first-child:not(.is-expanded) .card-excerpt {
+  -webkit-line-clamp: 2;
+}
+.digest-card-items .card:last-child:not(:first-child) {
+  grid-column: 1 / -1;
 }
 
 /* Glass items inside the digest card only — the feed tab's plain .card stays

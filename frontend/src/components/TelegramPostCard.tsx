@@ -5,7 +5,6 @@ import { ChevronDownIcon, ChevronUpIcon, VolumeOffIcon, VolumeOnIcon } from './i
 
 type TelegramPostCardProps = {
   post: TelegramPostDto;
-  channelTitle: string;
 };
 
 const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
@@ -61,7 +60,7 @@ function MediaItem({ url, className }: { url: string; className?: string }) {
   );
 }
 
-export function TelegramPostCard({ post, channelTitle }: TelegramPostCardProps) {
+export function TelegramPostCard({ post }: TelegramPostCardProps) {
   const [expanded, setExpanded] = useState(false);
   const bodyId = useId();
 
@@ -79,11 +78,7 @@ export function TelegramPostCard({ post, channelTitle }: TelegramPostCardProps) 
     <article
       className={`card telegram-post-card${expanded ? ' is-expanded' : ''}${isMediaOnly ? ' is-media-only' : ''}`}
     >
-      <div className="card-meta">
-        <span className="category-badge">{channelTitle}</span>
-        {dateText && <span className="sep">·</span>}
-        {dateText}
-      </div>
+      <div className="card-meta">{dateText}</div>
 
       {hasMedia && (
         <div className="card-media">
