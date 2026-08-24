@@ -1,13 +1,7 @@
 name: Build, Push and Deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - '.github/workflows/deploy.yml'
-  workflow_dispatch: # manual re-run — Actions tab: "Build, Push and Deploy" → "Run workflow"
+  workflow_dispatch: # manual only — run from the Actions tab: "Build, Push and Deploy" → "Run workflow"
 
 permissions:
   contents: read
