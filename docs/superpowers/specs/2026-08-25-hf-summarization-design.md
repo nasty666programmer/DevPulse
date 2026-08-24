@@ -1,7 +1,7 @@
 # Article/Post Summarization (self-hosted HuggingFace) — Design
 
 Date: 2026-08-25
-Status: Proposed (revised: lazy/on-demand instead of batch-at-collection)
+Status: Proposed — model selected: `facebook/bart-large-cnn` (see Model selection)
 
 ## Purpose
 
@@ -39,29 +39,56 @@ reader waits. That's the one new moving part this design adds;
 everything else (schema field, new endpoints, the button) stays inside
 existing patterns.
 
-## Model selection (do this before any code)
+## Model selection — done, `bart-large-cnn` chosen
 
-Compare at least two pre-trained candidates —
-`sshleifer/distilbart-cnn-12-6` (small, fast, the default guess) and
-`facebook/bart-large-cnn` (larger, likely better quality, slower) —
-against a sample of real, already-collected DevPulse content (~15-20
-items pulled from the existing dev Mongo `feeditems` /
-`telegramposts` collections, spanning a few categories). Run this as a
-throwaway local script (Python + `transformers`, CPU is fine for a
-one-off comparison) — not wired into the app yet. Judge on: factual
-accuracy (no hallucinated specifics), whether it reads like the source
-content (dev/tech, often terse Telegram posts) rather than generic
-news-wire prose, **and latency on CPU** — this now matters more than
-before, since a reader is waiting on the response synchronously rather
-than a background batch job. Pick one model as the actual default
-before writing the service; record the loser and why in this doc's
-status rather than silently dropping the comparison.
+Compared `sshleifer/distilbart-cnn-12-6` vs `facebook/bart-large-cnn`
+on 8 real feed items from the local dev Mongo (`feeditems` — the local
+`telegramposts` collection was empty at test time, so the Telegram
+side of this comparison is still outstanding; re-run once there's real
+Telegram content to sample), each truncated to the first 3000 input
+characters (see input-length caveat below), via a throwaway local
+script (kept out of the repo — not committed).
+
+**Result: `bart-large-cnn` wins on quality**, consistently more
+coherent and more faithful to source structure (e.g. correctly
+preserved a "Part 1/2/3" structure `distilbart` dropped). More
+importantly, `distilbart-cnn-12-6` produced one outright incoherent,
+repeating/hallucinated output on one of the 8 samples ("The 'Tourist
+Prompt' is what I call the 'Guid Tourist Prompt") — a real quality
+risk for a live, user-facing feature, not just a style preference.
+`bart-large-cnn` had no comparable failure across the sample.
+
+Cost of the win: `bart-large-cnn` is slower (**6-12s** observed per
+summary on the dev machine's CPU, vs `distilbart`'s 5-7s) and heavier
+on disk (~1.63GB model weights vs `distilbart`'s ~1.2GB). Accepted —
+this is a synchronous, user-initiated click with a loading state (see
+Data flow), so the extra few seconds cost UX patience, not correctness,
+and correctness is what `distilbart` failed on.
+
+**Input-length caveat found during testing:** neither model was fed
+more than the first 3000 characters of the source text in this
+comparison (BART's position embeddings cap around 1024 tokens; feeding
+more crashes with an `IndexError`, which is what surfaced this). One
+tested article was 16,366 characters — its summary was necessarily
+based on roughly the first fifth of the piece only. Whether this
+matters depends on how long real collected items typically run;
+revisit with chunked/map-reduce summarization only if long articles
+turn out to be common and the intro-only summary proves misleading in
+practice — not addressed by this design as written.
+
+**Latency caveat for prod:** the 6-12s figures above were measured on
+a full desktop CPU, not the shared k3s node's constrained per-pod CPU
+limit (see Resource planning — `1500m` limit, i.e. at most 1.5 cores).
+Expect real latency in prod to run slower than the dev measurement;
+confirm actual p95 after the first rollout (step 2 in Rollout
+sequencing) before treating `SUMMARIZER_TIMEOUT_MS` as tuned.
 
 ## Components
 
 ```
 summarizer-service/                          — new: standalone Python (FastAPI), own repo dir + Dockerfile
   main.py                                      — POST /summarize {text: string} -> {summary: string}
+                                                  model: facebook/bart-large-cnn (pipeline("summarization", ...))
   Dockerfile                                   — python:3.12-slim, transformers + torch (CPU) + fastapi/uvicorn
 providers/summarizer/SummarizerProvider.ts    — new: Node-side HTTP client for summarizer-service
 modules/summarizer/services/index.ts           — new: thin wrapper, timeout + error handling
@@ -124,16 +151,20 @@ Everything today runs on one Hetzner-class node with fairly small
 per-pod requests (backend: 50m CPU / 128Mi requests, 500m / 512Mi
 limits — see `pulsedev-infra/k8s/base/backend-deployment.yaml`). A HF
 model + `transformers` + CPU-only `torch` is a different resource
-profile — model weights alone are roughly 300MB–1.6GB depending on the
-candidate, plus framework overhead. On-demand load is bursty and
-request-shaped (one reader, one click) rather than a scheduled batch
-spike touching every collected item — likely lighter on average than
-the batch design would have been, but each request still needs to
-finish in a time a person will tolerate waiting on a button. Start
-with generous, explicit requests/limits (e.g. `500m`/`1Gi` requests,
-`1500m`/`2Gi` limits — refine once the model-selection step settles
-the actual model) and watch real usage in the existing Grafana/Loki
-stack before tightening.
+profile — `bart-large-cnn`'s weights alone are ~1.63GB on disk
+(measured), plus `torch`/`transformers` framework overhead on top; the
+pod needs enough memory headroom to load that and run inference
+without getting OOMKilled. On-demand load is bursty and request-shaped
+(one reader, one click) rather than a scheduled batch spike touching
+every collected item — likely lighter on average than the batch design
+would have been, but each request still needs to finish in a time a
+person will tolerate waiting on a button, and dev-machine latency
+(6-12s) won't directly transfer to the node's constrained CPU limit
+(see the Latency caveat in Model selection). Start with generous,
+explicit requests/limits (e.g. `500m`/`2.5Gi` requests, `1500m`/`3Gi`
+limits — the memory numbers bumped up from the original estimate now
+that the model's real size is known) and watch real usage in the
+existing Grafana/Loki stack before tightening.
 
 ## Deployment plan
 
@@ -160,8 +191,8 @@ stack before tightening.
 
 ## Rollout sequencing
 
-1. Model comparison (throwaway script, no deployment) → pick the
-   model.
+1. ~~Model comparison~~ — done, `bart-large-cnn` selected (see Model
+   selection).
 2. Build + deploy `summarizer-service` alone; confirm it's reachable
    in-cluster and healthy.
 3. Wire `POST /feed/items/:id/summary` + the button on `ArticleCard`
