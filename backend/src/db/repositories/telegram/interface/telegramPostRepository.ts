@@ -10,4 +10,6 @@ export interface ITelegramPostRepository {
         channelIds: number[],
         limitPerChannel: number
     ): Promise<ITelegramPostDocument[]>;
+    findById(id: string): Promise<ITelegramPostDocument | null>;
+    setSummary(id: string, summary: string): Promise<void>;
 }

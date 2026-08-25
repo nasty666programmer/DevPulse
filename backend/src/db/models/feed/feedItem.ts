@@ -8,6 +8,7 @@ const feedItemSchema = new Schema<IFeedItem>({
     date: { type: Date, required: true, index: true },
     rawArticleId: { type: Schema.Types.ObjectId, ref: 'RawArticle', required: true },
     category: { type: String, required: true, enum: ALL_CATEGORIES, index: true },
+    summary: { type: String, default: null },
 });
 
 export default model<IFeedItem>('FeedItem', feedItemSchema);

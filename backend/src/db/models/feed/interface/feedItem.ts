@@ -8,14 +8,19 @@ export interface IFeedItem {
     date: Date;
     rawArticleId: Types.ObjectId;
     category: Category;
+    // Optional on create (Mongoose defaults it to null) — every existing
+    // FeedItemRepository.create() call site is unaffected by this field.
+    summary?: string | null;
 }
 
 export interface IFeedItemDocument extends IFeedItem {
     _id: Types.ObjectId;
+    summary: string | null;
 }
 
 /** Shape returned by FeedItemRepository.getAll(), which populates rawArticleId. */
 export interface IPopulatedFeedItem extends Omit<IFeedItem, 'rawArticleId'> {
     _id: Types.ObjectId;
     rawArticleId: (IRawArticle & { _id: Types.ObjectId }) | null;
+    summary: string | null;
 }

@@ -38,6 +38,8 @@ describe('TelegramCollectorService.collect', () => {
         create: Mock<ITelegramPostRepository['create']>;
         findRecent: Mock<ITelegramPostRepository['findRecent']>;
         findRecentByChannelIds: Mock<ITelegramPostRepository['findRecentByChannelIds']>;
+        findById: Mock<ITelegramPostRepository['findById']>;
+        setSummary: Mock<ITelegramPostRepository['setSummary']>;
     };
     let service: TelegramCollectorService;
 
@@ -56,6 +58,8 @@ describe('TelegramCollectorService.collect', () => {
             create: vi.fn<ITelegramPostRepository['create']>(),
             findRecent: vi.fn<ITelegramPostRepository['findRecent']>(),
             findRecentByChannelIds: vi.fn<ITelegramPostRepository['findRecentByChannelIds']>(),
+            findById: vi.fn<ITelegramPostRepository['findById']>(),
+            setSummary: vi.fn<ITelegramPostRepository['setSummary']>(),
         };
 
         service = new TelegramCollectorService({
@@ -77,6 +81,7 @@ describe('TelegramCollectorService.collect', () => {
             text: 'Hello',
             publishedAt: new Date('2026-08-19'),
             mediaUrls: [],
+            summary: null,
         });
 
         const saved = await service.collect();
@@ -114,6 +119,7 @@ describe('TelegramCollectorService.collect', () => {
             text: 'B post',
             publishedAt: new Date('2026-08-19'),
             mediaUrls: [],
+            summary: null,
         });
 
         const saved = await service.collect();
@@ -147,6 +153,7 @@ describe('TelegramCollectorService.collect', () => {
         telegramProvider.fetch.mockResolvedValue(sevenPosts);
         telegramPostRepository.create.mockImplementation(async (post) => ({
             _id: new Types.ObjectId(),
+            summary: null,
             ...post,
         }));
 

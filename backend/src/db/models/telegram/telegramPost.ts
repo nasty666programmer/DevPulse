@@ -7,6 +7,7 @@ const telegramPostSchema = new Schema<ITelegramPost>({
     text: { type: String, default: '' },
     publishedAt: { type: Date, required: true },
     mediaUrls: { type: [String], default: [] },
+    summary: { type: String, default: null },
 });
 
 // Dedup key: the same channel/message pair is never stored twice, even if

@@ -16,4 +16,6 @@ export interface IFeedItemCategoryReader {
 export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemCategoryReader {
     getOne(): Promise<IFeedItemDocument | null>;
     getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]>;
+    findById(id: string): Promise<IFeedItemDocument | null>;
+    setSummary(id: string, summary: string): Promise<void>;
 }

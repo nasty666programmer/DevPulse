@@ -99,6 +99,7 @@ describe('RssCollectorServices', () => {
             date: new Date('2026-08-01'),
             rawArticleId: new Types.ObjectId(),
             category: 'Прочее',
+            summary: null,
         });
 
         const saved = await service.collect();
@@ -143,6 +144,7 @@ describe('RssCollectorServices', () => {
             date: new Date('2026-08-03'),
             rawArticleId: new Types.ObjectId(),
             category: 'Прочее',
+            summary: null,
         });
 
         const saved = await service.collect();

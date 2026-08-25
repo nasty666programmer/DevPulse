@@ -17,6 +17,7 @@ function populatedItem(title: string, category: Category, date: Date): IPopulate
         content: 'text',
         date,
         category,
+        summary: null,
         rawArticleId: {
             _id: rawArticleId,
             title,

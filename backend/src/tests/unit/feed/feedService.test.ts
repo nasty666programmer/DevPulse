@@ -28,6 +28,8 @@ describe('FeedService', () => {
         create: Mock<IFeedItemRepository['create']>;
         getAll: Mock<IFeedItemRepository['getAll']>;
         getRecentByCategory: Mock<IFeedItemRepository['getRecentByCategory']>;
+        findById: Mock<IFeedItemRepository['findById']>;
+        setSummary: Mock<IFeedItemRepository['setSummary']>;
     };
     let rawArticleRepository: {
         create: Mock<IRawArticleRepository['create']>;
@@ -44,6 +46,8 @@ describe('FeedService', () => {
             create: vi.fn<IFeedItemRepository['create']>(),
             getAll: vi.fn<IFeedItemRepository['getAll']>(),
             getRecentByCategory: vi.fn<IFeedItemRepository['getRecentByCategory']>(),
+            findById: vi.fn<IFeedItemRepository['findById']>(),
+            setSummary: vi.fn<IFeedItemRepository['setSummary']>(),
         };
         rawArticleRepository = {
             create: vi.fn<IRawArticleRepository['create']>(),
@@ -70,6 +74,7 @@ describe('FeedService', () => {
             date: new Date('2026-07-01'),
             rawArticleId: new Types.ObjectId(),
             category: 'Прочее' as const,
+            summary: null,
         };
         feedItemRepository.getOne.mockResolvedValue(storedItem);
 
@@ -101,6 +106,7 @@ describe('FeedService', () => {
             date: parsedArticle.publishedAt,
             rawArticleId: rawArticle._id,
             category: 'Прочее' as const,
+            summary: null,
         };
 
         rssCollectorService.fetchFeed.mockResolvedValue(feedItems);
@@ -222,6 +228,7 @@ describe('FeedService', () => {
                     content: 'Body',
                     date: new Date('2026-08-18'),
                     category: 'Docker',
+                    summary: null,
                     rawArticleId: {
                         _id: rawArticleId,
                         title: 'Post',
