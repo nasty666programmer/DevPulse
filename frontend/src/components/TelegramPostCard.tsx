@@ -1,11 +1,18 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { TelegramPostDto } from '../types';
 import { formatArticleDate, toExcerpt, toParagraphs } from '../utils/text';
+import { summarizeTelegramPost } from '../api/telegram';
 import { ChevronDownIcon, ChevronUpIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
 
 type TelegramPostCardProps = {
   post: TelegramPostDto;
 };
+
+// Mirrors backend's MIN_SUMMARIZABLE_LENGTH (modules/summarizer/interfaces/index.ts)
+// — kept in sync by hand, same convention as the Category union in types.ts.
+const MIN_SUMMARIZABLE_LENGTH = 200;
+
+type SummaryState = { status: 'idle' | 'loading' | 'error'; message?: string };
 
 const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url);
 
@@ -62,6 +69,8 @@ function MediaItem({ url, className }: { url: string; className?: string }) {
 
 export function TelegramPostCard({ post }: TelegramPostCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [summary, setSummary] = useState(post.summary);
+  const [summaryState, setSummaryState] = useState<SummaryState>({ status: 'idle' });
   const bodyId = useId();
 
   const dateText = formatArticleDate(post.publishedAt);
@@ -73,6 +82,21 @@ export function TelegramPostCard({ post }: TelegramPostCardProps) {
   const mediaUrls = [...new Set(post.mediaUrls)];
   const hasMedia = mediaUrls.length > 0;
   const isMediaOnly = !hasText && hasMedia;
+  const canSummarize = !summary && post.text.trim().length >= MIN_SUMMARIZABLE_LENGTH;
+
+  const handleSummarize = async () => {
+    setSummaryState({ status: 'loading' });
+    try {
+      const result = await summarizeTelegramPost(post.id);
+      setSummary(result);
+      setSummaryState({ status: 'idle' });
+    } catch (error) {
+      setSummaryState({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Не удалось получить саммари',
+      });
+    }
+  };
 
   return (
     <article
@@ -89,6 +113,8 @@ export function TelegramPostCard({ post }: TelegramPostCardProps) {
         </div>
       )}
 
+      {summary && <p className="card-summary">{summary}</p>}
+
       {hasText && !expanded && <p className="card-excerpt">{toExcerpt(post.text)}</p>}
 
       {hasText && expanded && (
@@ -100,18 +126,41 @@ export function TelegramPostCard({ post }: TelegramPostCardProps) {
         </div>
       )}
 
-      {hasLongText && (
+      {(hasLongText || canSummarize || summaryState.status === 'error') && (
         <div className="card-footer">
-          <button
-            type="button"
-            className="link-btn"
-            aria-expanded={expanded}
-            aria-controls={bodyId}
-            onClick={() => setExpanded((prev) => !prev)}
-          >
-            {expanded ? 'Свернуть' : 'Читать дальше'}
-            {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          </button>
+          <div className="card-footer-actions">
+            {hasLongText && (
+              <button
+                type="button"
+                className="link-btn"
+                aria-expanded={expanded}
+                aria-controls={bodyId}
+                onClick={() => setExpanded((prev) => !prev)}
+              >
+                {expanded ? 'Свернуть' : 'Читать дальше'}
+                {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              </button>
+            )}
+            {canSummarize && summaryState.status !== 'error' && (
+              <button
+                type="button"
+                className="link-btn"
+                disabled={summaryState.status === 'loading'}
+                aria-busy={summaryState.status === 'loading'}
+                onClick={handleSummarize}
+              >
+                {summaryState.status === 'loading' ? 'Саммаризация…' : 'Саммаризировать'}
+              </button>
+            )}
+            {summaryState.status === 'error' && (
+              <span className="summary-error">
+                {summaryState.message}
+                <button type="button" className="link-btn" onClick={handleSummarize}>
+                  Повторить
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       )}
     </article>
