@@ -26,7 +26,9 @@ personalization/subscriptions (this doc only assumes it's coming,
 doesn't build it), fine-tuning a model on DevPulse's own content (only
 revisit if the pre-trained candidate's quality proves insufficient —
 see Model selection), batch/eager summarization at collection time
-(chosen against — see Purpose).
+(chosen against — see Purpose), Russian/Ukrainian-language
+summarization (see Future work — `bart-large-cnn` is English-only;
+this ships English-only first).
 
 ## Constraint that shapes this design
 
@@ -200,6 +202,32 @@ existing Grafana/Loki stack before tightening.
    quality and click-to-result latency in prod on real traffic.
 4. Wire the Telegram equivalent (`POST /telegram/posts/:id/summary` +
    `TelegramPostCard` button) the same way.
+
+## Future work: Russian (and possibly Ukrainian) support
+
+`bart-large-cnn` is English-only — it doesn't meaningfully summarize
+Russian or Ukrainian text, this is a model limitation, not a config
+option. Once the English-only rollout above has shipped and is
+validated, add a second model rather than replacing the first:
+
+- Candidate: `csebuetnlp/mT5_multilingual_XLSum` — trained for
+  summarization across ~45 languages including Russian. **Verify
+  Ukrainian coverage on the model card before relying on it** — not
+  confirmed as of this doc.
+- `summarizer-service` loads both models (two `pipeline(...)`
+  instances in the same process) and picks one per request via a
+  language-detection step (e.g. `langdetect`/`fasttext` on the input
+  text, or a language hint passed from the caller if the source's
+  language is already known) — one service, not a second deployment,
+  unless combined memory footprint forces that later.
+- Needs its own model comparison on real Russian/Ukrainian content
+  from this app's actual sources before committing, exactly like the
+  English decision in Model selection above — do not assume
+  `mT5_multilingual_XLSum`'s quality without testing it here.
+- Resource impact: two models loaded at once roughly doubles memory
+  footprint versus the single-model numbers in Resource planning —
+  re-measure and re-budget node resources once this is built, don't
+  assume the existing `2.5Gi`/`3Gi` figures still hold.
 
 ## Testing
 
