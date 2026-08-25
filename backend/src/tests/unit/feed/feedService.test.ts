@@ -251,6 +251,7 @@ describe('FeedService', () => {
                     category: 'Docker',
                     url: 'https://example.com/post',
                     source: 'example.com',
+                    summary: null,
                 },
             ]);
         });

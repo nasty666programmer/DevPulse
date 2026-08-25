@@ -15,6 +15,7 @@ const feedItemSchema = {
         category: { type: 'string', enum: ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'] },
         url: { type: 'string', nullable: true },
         source: { type: 'string', nullable: true },
+        summary: { type: 'string', nullable: true, description: 'AI-generated summary, null until requested.' },
     },
 };
 
@@ -120,6 +121,39 @@ const openapiSpec = {
                 responses: {
                     '200': { description: 'OK' },
                     '500': { description: 'Сбой похода в фид' },
+                },
+            },
+        },
+        '/feed/items/{id}/summary': {
+            post: {
+                summary: 'Сгенерировать (или вернуть закешированную) саммари новости',
+                description:
+                    'Если summary уже есть — возвращает его без похода в summarizer-service. ' +
+                    'Иначе синхронно вызывает summarizer-service, сохраняет результат и возвращает его.',
+                tags: ['feed'],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: { summary: { type: 'string' } },
+                                },
+                            },
+                        },
+                    },
+                    '400': { description: 'Контент слишком короткий для саммаризации' },
+                    '404': { description: 'Новость не найдена' },
+                    '503': { description: 'summarizer-service недоступен или превышен таймаут' },
                 },
             },
         },

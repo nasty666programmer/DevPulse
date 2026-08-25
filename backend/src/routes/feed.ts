@@ -23,6 +23,11 @@ export default class FeedRoutes {
                 path: '/fetch-item',
                 handler: 'fetchFeedItem',
             },
+            {
+                method: 'post',
+                path: '/items/:id/summary',
+                handler: 'summarizeItem',
+            },
         ];
     }
 }
