@@ -10,6 +10,7 @@ permissions:
 env:
   BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/devpulse-backend
   FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/devpulse-frontend
+  SUMMARIZER_IMAGE: ghcr.io/${{ github.repository_owner }}/devpulse-summarizer
 
 jobs:
   build-and-push:
@@ -51,6 +52,15 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
+
+      - name: Build and push summarizer-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./summarizer-service
+          push: true
+          tags: |
+            ${{ env.SUMMARIZER_IMAGE }}:latest
+            ${{ env.SUMMARIZER_IMAGE }}:sha-${{ steps.vars.outputs.sha }}
 
   # Deploy manifests + the SSH deploy mechanism now live in the private
   # nasty666programmer/pulsedev-infra repo (kept out of this public repo on
