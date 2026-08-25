@@ -1,3 +1,9 @@
 -r requirements.txt
+# torch isn't in requirements.txt (the Docker image installs it separately
+# from the CPU-only wheel index — see Dockerfile — to avoid shipping the
+# multi-GB CUDA build). Local dev/test still needs a torch build to import
+# `main.py` at all; whichever default build pip resolves locally is fine
+# here, only the shipped image needs to be CPU-only.
+torch==2.5.1
 pytest==8.3.4
 httpx==0.28.1
