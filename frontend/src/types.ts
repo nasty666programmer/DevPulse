@@ -16,6 +16,8 @@ export type FeedItemDto = {
   category: Category;
   url: string | null;
   source: string | null;
+  /** AI-generated summary, null until a reader requests one. */
+  summary: string | null;
 };
 
 export type CollectResultDto = {
@@ -44,6 +46,8 @@ export type TelegramPostDto = {
   /** ISO date string. */
   publishedAt: string;
   mediaUrls: string[];
+  /** AI-generated summary, null until a reader requests one. */
+  summary: string | null;
 };
 
 export type AuthUserDto = {

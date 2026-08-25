@@ -36,3 +36,23 @@ export async function collectFeed(): Promise<CollectResultDto> {
     clearTimeout(timeoutId);
   }
 }
+
+// Generous relative to the backend's own SUMMARIZER_TIMEOUT_MS default
+// (15s) so the backend's own 503-on-timeout response has time to win the
+// race under normal conditions.
+const SUMMARIZE_TIMEOUT_MS = 20_000;
+
+export async function summarizeFeedItem(id: string): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SUMMARIZE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`/feed/items/${id}/summary`, { method: 'POST', signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(await parseErrorMessage(res));
+    }
+    const body = (await res.json()) as { summary: string };
+    return body.summary;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
