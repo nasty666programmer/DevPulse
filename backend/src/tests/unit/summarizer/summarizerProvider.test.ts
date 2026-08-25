@@ -62,6 +62,18 @@ describe('SummarizerProvider.summarize', () => {
         await expect(provider.summarize('text')).rejects.toThrow(SummarizerUnavailableError);
     });
 
+    it('throws SummarizerUnavailableError when the response body is not valid JSON', async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => {
+                throw new SyntaxError('Unexpected token');
+            },
+        });
+
+        await expect(provider.summarize('text')).rejects.toThrow(SummarizerUnavailableError);
+    });
+
     it('throws SummarizerUnavailableError on a network failure', async () => {
         fetchMock.mockRejectedValue(new Error('ECONNREFUSED'));
 

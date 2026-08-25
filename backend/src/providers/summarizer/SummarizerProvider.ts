@@ -47,7 +47,15 @@ export default class SummarizerProvider implements ISummarizerProvider {
             throw new SummarizerUnavailableError(`summarizer-service responded with ${response.status}`);
         }
 
-        const body: unknown = await response.json();
+        let body: unknown;
+        try {
+            body = await response.json();
+        } catch (error) {
+            Logger.warn('[SummarizerProvider] summarizer-service returned a non-JSON response body', {
+                error: error instanceof Error ? error.message : error,
+            });
+            throw new SummarizerUnavailableError('summarizer-service returned a malformed response');
+        }
 
         if (!isSummarizeResponseBody(body)) {
             throw new SummarizerUnavailableError('summarizer-service returned a malformed response');
