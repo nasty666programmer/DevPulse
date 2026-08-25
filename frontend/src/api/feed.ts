@@ -1,5 +1,5 @@
 import type { Category, CollectResultDto, FeedItemDto } from '../types';
-import { parseErrorMessage } from './http';
+import { parseErrorMessage, parseSummarizeError } from './http';
 
 // All requests use relative paths so the Vite dev-server proxy (see vite.config.ts)
 // and any production reverse-proxy both work without code changes.
@@ -48,10 +48,15 @@ export async function summarizeFeedItem(id: string): Promise<string> {
   try {
     const res = await fetch(`/feed/items/${id}/summary`, { method: 'POST', signal: controller.signal });
     if (!res.ok) {
-      throw new Error(await parseErrorMessage(res));
+      throw new Error(await parseSummarizeError(res));
     }
     const body = (await res.json()) as { summary: string };
     return body.summary;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Превышено время ожидания ответа от сервиса саммаризации.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }

@@ -9,11 +9,11 @@ import type { IFeedItemRepository } from './interface/feedItemRepository.js';
 
 export default class FeedItemRepository implements IFeedItemRepository {
     async create(data: IFeedItem): Promise<IFeedItemDocument> {
-        return (await FeedItemModel.create(data)) as unknown as IFeedItemDocument;
+        return await FeedItemModel.create(data);
     }
 
     async getOne(): Promise<IFeedItemDocument | null> {
-        return (await FeedItemModel.findOne()) as unknown as IFeedItemDocument | null;
+        return await FeedItemModel.findOne();
     }
 
     async getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]> {
@@ -41,7 +41,7 @@ export default class FeedItemRepository implements IFeedItemRepository {
     }
 
     async findById(id: string): Promise<IFeedItemDocument | null> {
-        return (await FeedItemModel.findById(id)) as unknown as IFeedItemDocument | null;
+        return await FeedItemModel.findById(id);
     }
 
     async setSummary(id: string, summary: string): Promise<void> {

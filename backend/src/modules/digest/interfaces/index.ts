@@ -8,6 +8,7 @@ export interface DigestArticle {
     category: Category;
     url: string | null;
     source: string | null;
+    summary: string | null;
 }
 
 export interface DigestData {

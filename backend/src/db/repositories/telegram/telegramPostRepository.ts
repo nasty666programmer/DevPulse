@@ -7,13 +7,11 @@ import type { ITelegramPostRepository } from './interface/telegramPostRepository
 
 export default class TelegramPostRepository implements ITelegramPostRepository {
     async create(post: ITelegramPost): Promise<ITelegramPostDocument> {
-        return (await TelegramPostModel.create(post)) as unknown as ITelegramPostDocument;
+        return await TelegramPostModel.create(post);
     }
 
     async findRecent(limit: number): Promise<ITelegramPostDocument[]> {
-        return (await TelegramPostModel.find()
-            .sort({ publishedAt: -1 })
-            .limit(limit)) as unknown as ITelegramPostDocument[];
+        return await TelegramPostModel.find().sort({ publishedAt: -1 }).limit(limit);
     }
 
     // One capped query per channel rather than a single global query — a
@@ -31,11 +29,11 @@ export default class TelegramPostRepository implements ITelegramPostRepository {
             )
         );
 
-        return (groups.flat() as unknown) as ITelegramPostDocument[];
+        return groups.flat();
     }
 
     async findById(id: string): Promise<ITelegramPostDocument | null> {
-        return (await TelegramPostModel.findById(id)) as unknown as ITelegramPostDocument | null;
+        return await TelegramPostModel.findById(id);
     }
 
     async setSummary(id: string, summary: string): Promise<void> {

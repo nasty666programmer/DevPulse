@@ -153,6 +153,13 @@ describe('POST /feed/items/:id/summary', () => {
         expect(summarizerService.summarize).not.toHaveBeenCalled();
     });
 
+    it('returns 404 for a malformed id without calling the repository', async () => {
+        const response = await request(app).post('/feed/items/not-a-valid-id/summary');
+
+        expect(response.status).toBe(404);
+        expect(feedItemRepository.findById).not.toHaveBeenCalled();
+    });
+
     it('returns the cached summary without calling the summarizer (cache hit)', async () => {
         feedItemRepository.findById.mockResolvedValue({
             _id: id,

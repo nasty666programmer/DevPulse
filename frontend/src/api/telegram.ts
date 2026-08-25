@@ -1,5 +1,5 @@
 import type { TelegramChannelDto, TelegramPostDto } from '../types';
-import { parseErrorMessage } from './http';
+import { parseErrorMessage, parseSummarizeError } from './http';
 
 export type TelegramChannelsPage = {
   channels: TelegramChannelDto[];
@@ -49,10 +49,15 @@ export async function summarizeTelegramPost(id: string): Promise<string> {
   try {
     const res = await fetch(`/telegram/posts/${id}/summary`, { method: 'POST', signal: controller.signal });
     if (!res.ok) {
-      throw new Error(await parseErrorMessage(res));
+      throw new Error(await parseSummarizeError(res));
     }
     const body = (await res.json()) as { summary: string };
     return body.summary;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Превышено время ожидания ответа от сервиса саммаризации.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }

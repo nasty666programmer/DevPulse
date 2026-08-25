@@ -13,5 +13,4 @@ export interface ITelegramPost {
 
 export interface ITelegramPostDocument extends ITelegramPost {
     _id: Types.ObjectId;
-    summary: string | null;
 }

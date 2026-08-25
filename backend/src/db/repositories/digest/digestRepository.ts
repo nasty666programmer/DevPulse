@@ -20,6 +20,9 @@ export default class DigestRepository implements IDigestRepository {
             return null;
         }
 
-        return { generatedAt: digest.generatedAt, articles: digest.articles };
+        return {
+            generatedAt: digest.generatedAt,
+            articles: digest.articles.map((article) => ({ ...article, summary: article.summary ?? null })),
+        };
     }
 }

@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import FeedService from '../../modules/feed/services/index.js';
 import config from '../../modules/config/index.js';
 import type { Category } from '../../modules/categorization/interfaces/index.js';
@@ -56,7 +57,14 @@ export default class FeedController {
     }
 
     async summarizeItem(req: Request, res: Response) {
-        const item = await this.feedItemRepository.findById(req.params.id as string);
+        const id = req.params.id as string;
+
+        if (!Types.ObjectId.isValid(id)) {
+            res.status(404).json({ error: 'Feed item not found' });
+            return;
+        }
+
+        const item = await this.feedItemRepository.findById(id);
 
         if (!item) {
             res.status(404).json({ error: 'Feed item not found' });

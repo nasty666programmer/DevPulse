@@ -10,6 +10,7 @@ const digestArticleSchema = new Schema(
         category: { type: String, required: true },
         url: { type: String, default: null },
         source: { type: String, default: null },
+        summary: { type: String, default: null },
     },
     { _id: false }
 );

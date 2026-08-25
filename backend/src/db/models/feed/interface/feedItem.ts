@@ -15,12 +15,10 @@ export interface IFeedItem {
 
 export interface IFeedItemDocument extends IFeedItem {
     _id: Types.ObjectId;
-    summary: string | null;
 }
 
 /** Shape returned by FeedItemRepository.getAll(), which populates rawArticleId. */
 export interface IPopulatedFeedItem extends Omit<IFeedItem, 'rawArticleId'> {
     _id: Types.ObjectId;
     rawArticleId: (IRawArticle & { _id: Types.ObjectId }) | null;
-    summary: string | null;
 }

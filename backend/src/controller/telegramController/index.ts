@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import type TelegramCollectorService from '../../modules/telegramCollector/services/index.js';
 import config from '../../modules/config/index.js';
 import type { ITelegramChannelRepository } from '../../db/repositories/telegram/interface/telegramChannelRepository.js';
@@ -121,7 +122,14 @@ export default class TelegramController {
     }
 
     async summarizePost(req: Request, res: Response) {
-        const post = await this.telegramPostRepository.findById(req.params.id as string);
+        const id = req.params.id as string;
+
+        if (!Types.ObjectId.isValid(id)) {
+            res.status(404).json({ error: 'Telegram post not found' });
+            return;
+        }
+
+        const post = await this.telegramPostRepository.findById(id);
 
         if (!post) {
             res.status(404).json({ error: 'Telegram post not found' });
