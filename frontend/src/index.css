@@ -979,6 +979,31 @@ svg {
   border-radius: 4px;
 }
 
+.card-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.card-summary {
+  font: 500 14px/1.5 var(--font-ui);
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.summary-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: 400 13px var(--font-ui);
+  color: var(--danger);
+}
+
 .original-link {
   display: inline-flex;
   align-items: center;
