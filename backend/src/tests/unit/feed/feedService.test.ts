@@ -19,6 +19,9 @@ import type { IHtmlParserService } from '../../../modules/parsers/interfaces/ind
 import type { IFeedItemRepository } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { ICategorizationService } from '../../../modules/categorization/interfaces/index.js';
+import type { ISummarizerService } from '../../../modules/summarizer/interfaces/index.js';
+import { FeedItemNotFoundError, FeedItemNotSummarizableError } from '../../../modules/feed/errors.js';
+import { SummarizerTimeoutError } from '../../../providers/summarizer/errors.js';
 
 describe('FeedService', () => {
     let rssCollectorService: { fetchFeed: Mock<IFeedFetcher['fetchFeed']> };
@@ -36,6 +39,7 @@ describe('FeedService', () => {
         findByUrl: Mock<IRawArticleRepository['findByUrl']>;
     };
     let categorizationService: { categorize: Mock<ICategorizationService['categorize']> };
+    let summarizerService: { summarize: Mock<ISummarizerService['summarize']> };
     let feedService: FeedService;
 
     beforeEach(() => {
@@ -56,6 +60,7 @@ describe('FeedService', () => {
         categorizationService = {
             categorize: vi.fn<ICategorizationService['categorize']>().mockReturnValue('Прочее'),
         };
+        summarizerService = { summarize: vi.fn<ISummarizerService['summarize']>() };
 
         feedService = new FeedService({
             rssCollectorService,
@@ -63,6 +68,7 @@ describe('FeedService', () => {
             feedItemRepository,
             rawArticleRepository,
             categorizationService,
+            summarizerService,
         });
     });
 
@@ -254,6 +260,70 @@ describe('FeedService', () => {
                     summary: null,
                 },
             ]);
+        });
+    });
+
+    describe('summarizeItem', () => {
+        const objectId = new Types.ObjectId();
+        const id = objectId.toString();
+        const longContent = 'a'.repeat(250);
+
+        function feedItemDocument(overrides: Partial<{ content: string; summary: string | null }> = {}) {
+            return {
+                _id: objectId,
+                title: 'Post',
+                content: longContent,
+                date: new Date('2026-08-18'),
+                rawArticleId: new Types.ObjectId(),
+                category: 'Прочее' as const,
+                summary: null,
+                ...overrides,
+            };
+        }
+
+        it('throws FeedItemNotFoundError for a malformed id, without querying the repository', async () => {
+            await expect(feedService.summarizeItem('not-a-valid-id')).rejects.toThrow(FeedItemNotFoundError);
+
+            expect(feedItemRepository.findById).not.toHaveBeenCalled();
+        });
+
+        it('throws FeedItemNotFoundError when the item does not exist', async () => {
+            feedItemRepository.findById.mockResolvedValue(null);
+
+            await expect(feedService.summarizeItem(id)).rejects.toThrow(FeedItemNotFoundError);
+            expect(summarizerService.summarize).not.toHaveBeenCalled();
+        });
+
+        it('returns the cached summary without calling the summarizer', async () => {
+            feedItemRepository.findById.mockResolvedValue(feedItemDocument({ summary: 'Already summarized.' }));
+
+            await expect(feedService.summarizeItem(id)).resolves.toBe('Already summarized.');
+            expect(summarizerService.summarize).not.toHaveBeenCalled();
+        });
+
+        it('throws FeedItemNotSummarizableError without calling the summarizer when content is too short', async () => {
+            feedItemRepository.findById.mockResolvedValue(feedItemDocument({ content: 'too short' }));
+
+            await expect(feedService.summarizeItem(id)).rejects.toThrow(FeedItemNotSummarizableError);
+            expect(summarizerService.summarize).not.toHaveBeenCalled();
+        });
+
+        it('summarizes, persists, and returns the summary on a cache miss', async () => {
+            feedItemRepository.findById.mockResolvedValue(feedItemDocument());
+            summarizerService.summarize.mockResolvedValue('Fresh summary.');
+
+            await expect(feedService.summarizeItem(id)).resolves.toBe('Fresh summary.');
+            expect(summarizerService.summarize).toHaveBeenCalledWith(longContent);
+            expect(feedItemRepository.setSummary).toHaveBeenCalledWith(id, 'Fresh summary.');
+        });
+
+        it('propagates summarizer errors without persisting anything', async () => {
+            feedItemRepository.findById.mockResolvedValue(feedItemDocument());
+            const error = new SummarizerTimeoutError();
+            summarizerService.summarize.mockRejectedValue(error);
+
+            await expect(feedService.summarizeItem(id)).rejects.toThrow(error);
+            expect(feedItemRepository.setSummary).not.toHaveBeenCalled();
         });
     });
 });

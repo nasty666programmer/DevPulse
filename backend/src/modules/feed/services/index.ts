@@ -1,11 +1,15 @@
+import { Types } from 'mongoose';
 import type { IFeedItemRepository } from '../../../db/repositories/feed/interface/feedItemRepository.js';
 import type { IRawArticleRepository } from '../../../db/repositories/feed/interface/rawArticleRepository.js';
 import type { IHtmlParserService, ParsedArticle } from '../../parsers/interfaces/index.js';
 import type { IFeedFetcher } from '../../rss/interfaces/index.js';
 import type { Category, ICategorizationService } from '../../categorization/interfaces/index.js';
+import type { ISummarizerService } from '../../summarizer/interfaces/index.js';
+import { isSummarizable } from '../../summarizer/interfaces/index.js';
 import config from '../../config/index.js';
 import { mapPopulatedFeedItem } from '../mappers.js';
 import { isDuplicateKeyError } from '../../../common/utils.js';
+import { FeedItemNotFoundError, FeedItemNotSummarizableError } from '../errors.js';
 
 export default class FeedService {
     private readonly rssCollectorService: IFeedFetcher;
@@ -13,6 +17,7 @@ export default class FeedService {
     private readonly feedItemRepository: IFeedItemRepository;
     private readonly rawArticleRepository: IRawArticleRepository;
     private readonly categorizationService: ICategorizationService;
+    private readonly summarizerService: ISummarizerService;
 
     constructor({
         rssCollectorService,
@@ -20,18 +25,21 @@ export default class FeedService {
         feedItemRepository,
         rawArticleRepository,
         categorizationService,
+        summarizerService,
     }: {
         rssCollectorService: IFeedFetcher;
         htmlParserService: IHtmlParserService;
         feedItemRepository: IFeedItemRepository;
         rawArticleRepository: IRawArticleRepository;
         categorizationService: ICategorizationService;
+        summarizerService: ISummarizerService;
     }) {
         this.rssCollectorService = rssCollectorService;
         this.htmlParserService = htmlParserService;
         this.feedItemRepository = feedItemRepository;
         this.rawArticleRepository = rawArticleRepository;
         this.categorizationService = categorizationService;
+        this.summarizerService = summarizerService;
     }
 
     async getItem() {
@@ -65,6 +73,35 @@ export default class FeedService {
         const items = await this.feedItemRepository.getAll(limit, category);
 
         return items.map(mapPopulatedFeedItem);
+    }
+
+    // Throws FeedItemNotFoundError, FeedItemNotSummarizableError, or lets
+    // SummarizerTimeoutError/SummarizerUnavailableError from the summarizer
+    // propagate — the controller maps each to its HTTP status.
+    async summarizeItem(id: string): Promise<string> {
+        if (!Types.ObjectId.isValid(id)) {
+            throw new FeedItemNotFoundError();
+        }
+
+        const item = await this.feedItemRepository.findById(id);
+
+        if (!item) {
+            throw new FeedItemNotFoundError();
+        }
+
+        if (item.summary) {
+            return item.summary;
+        }
+
+        if (!isSummarizable(item.content)) {
+            throw new FeedItemNotSummarizableError();
+        }
+
+        const summary = await this.summarizerService.summarize(item.content);
+
+        await this.feedItemRepository.setSummary(item._id.toString(), summary);
+
+        return summary;
     }
 
     async saveFeedItem(article: ParsedArticle) {
