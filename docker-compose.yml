@@ -10,6 +10,13 @@ services:
         # which stays headless/cluster-internal on purpose.
         ports: ['127.0.0.1:27017:27017']
 
+    summarizer-service:
+        build: ./summarizer-service
+        # Not exposed beyond localhost — same reasoning as prod's ClusterIP
+        # (see the design spec's Deployment plan): only backend-service needs
+        # it, this port mapping is purely for local curl/debugging.
+        ports: ['127.0.0.1:8000:8000']
+
     backend-service:
         build: ./backend
         env_file: ./backend/.env
@@ -21,7 +28,10 @@ services:
             # in name with the prod database (see k8s/base/secret.example.yaml in the
             # nasty666programmer/pulsedev-infra repo).
             MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-digestAdmin}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME:-digital_ai_project_dev}?authSource=admin
-        depends_on: [mongo]
+            # Overrides backend/.env's localhost default — inside compose,
+            # summarizer-service is only reachable at its own service hostname.
+            SUMMARIZER_SERVICE_URL: http://summarizer-service:8000
+        depends_on: [mongo, summarizer-service]
         ports: ['3000:3000']
 
     frontend:
