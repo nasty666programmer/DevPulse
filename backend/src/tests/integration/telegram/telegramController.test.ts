@@ -5,6 +5,7 @@ import { createContainer, InjectionMode, asClass, asValue } from 'awilix';
 import { Types } from 'mongoose';
 import handleMiddleware from '../../../middleware.js';
 import TelegramController from '../../../controller/telegramController/index.js';
+import { SummarizerTimeoutError, SummarizerUnavailableError } from '../../../providers/summarizer/errors.js';
 
 vi.mock('../../../modules/config/index.js', () => ({
     default: {
@@ -47,8 +48,11 @@ function setupApp() {
         create: vi.fn(),
         findRecent: vi.fn(),
         findRecentByChannelIds: vi.fn(),
+        findById: vi.fn(),
+        setSummary: vi.fn(),
     };
     const telegramCollectorService = { collect: vi.fn() };
+    const summarizerService = { summarize: vi.fn() };
 
     const container = createContainer({
         injectionMode: InjectionMode.PROXY,
@@ -60,9 +64,10 @@ function setupApp() {
         telegramChannelRepository: asValue(telegramChannelRepository),
         telegramPostRepository: asValue(telegramPostRepository),
         telegramCollectorService: asValue(telegramCollectorService),
+        summarizerService: asValue(summarizerService),
     });
 
-    return { telegramChannelRepository, telegramPostRepository, container };
+    return { telegramChannelRepository, telegramPostRepository, summarizerService, container };
 }
 
 describe('GET /telegram/channels', () => {
@@ -162,5 +167,80 @@ describe('GET /telegram/posts', () => {
         expect(telegramPostRepository.findRecentByChannelIds).toHaveBeenCalledWith([-1, -2], 5);
         expect(response.body).toHaveLength(2);
         expect(telegramPostRepository.findRecent).not.toHaveBeenCalled();
+    });
+});
+
+describe('POST /telegram/posts/:id/summary', () => {
+    let app: express.Express;
+    let telegramPostRepository: ReturnType<typeof setupApp>['telegramPostRepository'];
+    let summarizerService: ReturnType<typeof setupApp>['summarizerService'];
+    const id = new Types.ObjectId().toString();
+    const longText = 'a'.repeat(250);
+
+    beforeEach(async () => {
+        const setup = setupApp();
+        telegramPostRepository = setup.telegramPostRepository;
+        summarizerService = setup.summarizerService;
+        app = express();
+        await handleMiddleware(app, express, setup.container);
+    });
+
+    it('returns 404 when the post does not exist', async () => {
+        telegramPostRepository.findById.mockResolvedValue(null);
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(404);
+        expect(summarizerService.summarize).not.toHaveBeenCalled();
+    });
+
+    it('returns the cached summary without calling the summarizer (cache hit)', async () => {
+        telegramPostRepository.findById.mockResolvedValue({ _id: id, text: longText, summary: 'Cached.' });
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ summary: 'Cached.' });
+        expect(summarizerService.summarize).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 without calling the summarizer when text is too short', async () => {
+        telegramPostRepository.findById.mockResolvedValue({ _id: id, text: 'short', summary: null });
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(400);
+        expect(summarizerService.summarize).not.toHaveBeenCalled();
+    });
+
+    it('calls the summarizer, persists, and returns the summary on a cache miss', async () => {
+        telegramPostRepository.findById.mockResolvedValue({ _id: id, text: longText, summary: null });
+        summarizerService.summarize.mockResolvedValue('Fresh summary.');
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ summary: 'Fresh summary.' });
+        expect(summarizerService.summarize).toHaveBeenCalledWith(longText);
+        expect(telegramPostRepository.setSummary).toHaveBeenCalledWith(id, 'Fresh summary.');
+    });
+
+    it('returns 503 and does not cache anything when the summarizer fails', async () => {
+        telegramPostRepository.findById.mockResolvedValue({ _id: id, text: longText, summary: null });
+        summarizerService.summarize.mockRejectedValue(new SummarizerUnavailableError());
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(503);
+        expect(telegramPostRepository.setSummary).not.toHaveBeenCalled();
+    });
+
+    it('returns 503 when the summarizer times out', async () => {
+        telegramPostRepository.findById.mockResolvedValue({ _id: id, text: longText, summary: null });
+        summarizerService.summarize.mockRejectedValue(new SummarizerTimeoutError());
+
+        const response = await request(app).post(`/telegram/posts/${id}/summary`);
+
+        expect(response.status).toBe(503);
     });
 });

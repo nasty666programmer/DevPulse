@@ -18,6 +18,11 @@ export default class TelegramRoutes {
                 path: '/posts',
                 handler: 'listPosts',
             },
+            {
+                method: 'post',
+                path: '/posts/:id/summary',
+                handler: 'summarizePost',
+            },
         ];
     }
 }

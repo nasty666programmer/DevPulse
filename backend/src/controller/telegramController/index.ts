@@ -5,6 +5,9 @@ import type { ITelegramChannelRepository } from '../../db/repositories/telegram/
 import type { ITelegramPostRepository } from '../../db/repositories/telegram/interface/telegramPostRepository.js';
 import type { ITelegramChannelDocument } from '../../db/models/telegram/interface/telegramChannel.js';
 import type { ITelegramPostDocument } from '../../db/models/telegram/interface/telegramPost.js';
+import type { ISummarizerService } from '../../modules/summarizer/interfaces/index.js';
+import { isSummarizable } from '../../modules/summarizer/interfaces/index.js';
+import { SummarizerTimeoutError, SummarizerUnavailableError } from '../../providers/summarizer/errors.js';
 
 function toChannelDto(channel: ITelegramChannelDocument) {
     return {
@@ -23,6 +26,11 @@ function toPostDto(post: ITelegramPostDocument) {
         text: post.text,
         publishedAt: post.publishedAt,
         mediaUrls: post.mediaUrls,
+        // ?? null, not a bare pass-through: posts collected before this field
+        // existed have no `summary` key at all in Mongo (Mongoose's schema
+        // `default` only applies on create, never retroactively on read), so
+        // this reads back as undefined for them, not null.
+        summary: post.summary ?? null,
     };
 }
 
@@ -41,19 +49,23 @@ export default class TelegramController {
     private readonly telegramCollectorService: TelegramCollectorService;
     private readonly telegramChannelRepository: ITelegramChannelRepository;
     private readonly telegramPostRepository: ITelegramPostRepository;
+    private readonly summarizerService: ISummarizerService;
 
     constructor({
         telegramCollectorService,
         telegramChannelRepository,
         telegramPostRepository,
+        summarizerService,
     }: {
         telegramCollectorService: TelegramCollectorService;
         telegramChannelRepository: ITelegramChannelRepository;
         telegramPostRepository: ITelegramPostRepository;
+        summarizerService: ISummarizerService;
     }) {
         this.telegramCollectorService = telegramCollectorService;
         this.telegramChannelRepository = telegramChannelRepository;
         this.telegramPostRepository = telegramPostRepository;
+        this.summarizerService = summarizerService;
     }
 
     async collectTelegram(req: Request, res: Response) {
@@ -106,5 +118,39 @@ export default class TelegramController {
         const posts = await this.telegramPostRepository.findRecent(limit);
 
         res.json(posts.map(toPostDto));
+    }
+
+    async summarizePost(req: Request, res: Response) {
+        const post = await this.telegramPostRepository.findById(req.params.id as string);
+
+        if (!post) {
+            res.status(404).json({ error: 'Telegram post not found' });
+            return;
+        }
+
+        if (post.summary) {
+            res.json({ summary: post.summary });
+            return;
+        }
+
+        if (!isSummarizable(post.text)) {
+            res.status(400).json({ error: 'Post text is too short to summarize' });
+            return;
+        }
+
+        let summary: string;
+        try {
+            summary = await this.summarizerService.summarize(post.text);
+        } catch (error) {
+            if (error instanceof SummarizerTimeoutError || error instanceof SummarizerUnavailableError) {
+                res.status(503).json({ error: error.message });
+                return;
+            }
+            throw error;
+        }
+
+        await this.telegramPostRepository.setSummary(post._id.toString(), summary);
+
+        res.json({ summary });
     }
 }

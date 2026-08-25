@@ -291,12 +291,46 @@ const openapiSpec = {
                                                 type: 'array',
                                                 items: { type: 'string' },
                                             },
+                                            summary: { type: 'string', nullable: true },
                                         },
                                     },
                                 },
                             },
                         },
                     },
+                },
+            },
+        },
+        '/telegram/posts/{id}/summary': {
+            post: {
+                summary: 'Сгенерировать (или вернуть закешированную) саммари поста',
+                description:
+                    'Если summary уже есть — возвращает его без похода в summarizer-service. ' +
+                    'Иначе синхронно вызывает summarizer-service, сохраняет результат и возвращает его.',
+                tags: ['telegram'],
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        schema: { type: 'string' },
+                    },
+                ],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: { summary: { type: 'string' } },
+                                },
+                            },
+                        },
+                    },
+                    '400': { description: 'Текст слишком короткий для саммаризации' },
+                    '404': { description: 'Пост не найден' },
+                    '503': { description: 'summarizer-service недоступен или превышен таймаут' },
                 },
             },
         },
