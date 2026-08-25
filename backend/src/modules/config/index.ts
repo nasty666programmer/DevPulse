@@ -15,6 +15,8 @@ const DEFAULT_TELEGRAM_CHANNELS_PAGE_SIZE = 4;
 const DEFAULT_SESSION_COOKIE_NAME = 'devpulse_session';
 const DEFAULT_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
+const DEFAULT_SUMMARIZER_SERVICE_URL = 'http://localhost:8000';
+const DEFAULT_SUMMARIZER_TIMEOUT_MS = 15000;
 
 /**
  * RSS_FEEDS supports either a flat array of URL strings, a flat array of
@@ -152,6 +154,19 @@ const config = {
     // rejected by browsers whenever credentials: 'include' is used.
     get corsOrigin(): string {
         return process.env.CORS_ORIGIN || DEFAULT_CORS_ORIGIN;
+    },
+    // Base URL of summarizer-service (Python/FastAPI). In docker-compose and
+    // Kubernetes this is overridden to the in-cluster/in-compose hostname;
+    // the localhost default is for running the backend directly (dev.sh)
+    // against a locally-run `uvicorn main:app`.
+    get summarizerServiceUrl(): string {
+        return process.env.SUMMARIZER_SERVICE_URL || DEFAULT_SUMMARIZER_SERVICE_URL;
+    },
+    // How long to wait for summarizer-service before giving up. Generous —
+    // this is a synchronous, user-initiated click with no batch queue
+    // behind it, just one reader waiting.
+    get summarizerTimeoutMs(): number {
+        return parsePositiveInt(process.env.SUMMARIZER_TIMEOUT_MS, DEFAULT_SUMMARIZER_TIMEOUT_MS);
     },
 };
 

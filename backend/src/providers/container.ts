@@ -3,11 +3,13 @@ import type { AwilixContainer } from 'awilix';
 import RssProvider from './Rss/RssProvider.js';
 import TelegramProvider from './telegram/TelegramProvider.js';
 import GoogleAuthProvider from './google/GoogleAuthProvider.js';
+import SummarizerProvider from './summarizer/SummarizerProvider.js';
 
 export function createProvidersContainer(container: AwilixContainer) {
     return container.register({
         rssProvider: asClass(RssProvider).scoped(),
         telegramProvider: asClass(TelegramProvider).scoped(),
         googleAuthProvider: asClass(GoogleAuthProvider).scoped(),
+        summarizerProvider: asClass(SummarizerProvider).scoped(),
     });
 }
