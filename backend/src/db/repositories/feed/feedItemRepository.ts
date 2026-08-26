@@ -44,6 +44,10 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return await FeedItemModel.findOne({ _id: id, userId });
     }
 
+    async distinctCategoriesForUser(userId: string): Promise<Category[]> {
+        return await FeedItemModel.distinct('category', { userId });
+    }
+
     async setSummary(id: string, summary: string): Promise<void> {
         await FeedItemModel.updateOne({ _id: id }, { $set: { summary } });
     }

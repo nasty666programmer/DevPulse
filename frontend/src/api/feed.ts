@@ -23,6 +23,16 @@ export async function fetchFeedItems(limit = DEFAULT_LIMIT, category?: Category)
   return (await res.json()) as FeedItemDto[];
 }
 
+// Only the categories the current user actually has items in — not the
+// full fixed taxonomy. A new user with no collected items yet gets [].
+export async function fetchFeedCategories(): Promise<Category[]> {
+  const res = await fetch('/feed/categories');
+  if (!res.ok) {
+    throw new Error(await parseErrorMessage(res));
+  }
+  return (await res.json()) as Category[];
+}
+
 export async function collectFeed(): Promise<CollectResultDto> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), COLLECT_TIMEOUT_MS);

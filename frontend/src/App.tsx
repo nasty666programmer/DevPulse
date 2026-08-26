@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { collectFeed, fetchFeedItems } from './api/feed';
+import { collectFeed, fetchFeedCategories, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
 import { addFeedSource, fetchFeedSources, removeFeedSource } from './api/feedSources';
 import { fetchTelegramChannels, fetchTelegramChannelsPage, fetchTelegramPostsForChannels } from './api/telegram';
@@ -56,6 +56,10 @@ export default function App() {
   const [feedItems, setFeedItems] = useState<FeedItemDto[]>([]);
   const [feedErrorMessage, setFeedErrorMessage] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Category | null>(null);
+  // Only the categories this user actually has items in — not the fixed
+  // taxonomy — so the filter row reflects their real content, not a
+  // one-size-fits-all default.
+  const [feedCategories, setFeedCategories] = useState<Category[]>([]);
 
   const [telegramStatus, setTelegramStatus] = useState<TelegramPostListStatus>('loading');
   // Full, unpaginated — feeds the channel-chip overview row.
@@ -91,8 +95,12 @@ export default function App() {
   const loadFeed = useCallback(async () => {
     setFeedStatus('loading');
     try {
-      const items = await fetchFeedItems(FEED_LIMIT, categoryFilter ?? undefined);
+      const [items, categories] = await Promise.all([
+        fetchFeedItems(FEED_LIMIT, categoryFilter ?? undefined),
+        fetchFeedCategories(),
+      ]);
       setFeedItems(items);
+      setFeedCategories(categories);
       setFeedStatus('ready');
     } catch (err) {
       setFeedErrorMessage(describeError(err));
@@ -276,7 +284,11 @@ export default function App() {
 
             {activeTab === 'feed' && (
               <>
-                <CategoryFilter activeCategory={categoryFilter} onChange={setCategoryFilter} />
+                <CategoryFilter
+                  categories={feedCategories}
+                  activeCategory={categoryFilter}
+                  onChange={setCategoryFilter}
+                />
                 <FeedList
                   status={feedStatus}
                   items={feedItems}

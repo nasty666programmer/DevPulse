@@ -78,6 +78,10 @@ export default class FeedService {
         return items.map(mapPopulatedFeedItem);
     }
 
+    async listCategories(userId: string): Promise<Category[]> {
+        return this.feedItemRepository.distinctCategoriesForUser(userId);
+    }
+
     // Throws FeedItemNotFoundError, FeedItemNotSummarizableError, or lets
     // SummarizerTimeoutError/SummarizerUnavailableError from the summarizer
     // propagate — the controller maps each to its HTTP status.

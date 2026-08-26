@@ -112,6 +112,58 @@ describe('GET /feed/items', () => {
     });
 });
 
+describe('GET /feed/categories', () => {
+    let app: express.Express;
+    let feedItemRepository: { distinctCategoriesForUser: ReturnType<typeof vi.fn> };
+    const userId = new Types.ObjectId().toString();
+
+    beforeEach(async () => {
+        feedItemRepository = { distinctCategoriesForUser: vi.fn().mockResolvedValue([]) };
+
+        const container = createContainer({
+            injectionMode: InjectionMode.PROXY,
+            strict: true,
+        });
+
+        container.register({
+            authMiddleware: asValue({
+                useMiddleware: vi.fn(async (req) => {
+                    req.userId = userId;
+                }),
+            }),
+            feedController: asClass(FeedController).scoped(),
+            feedService: asClass(FeedService).scoped(),
+            rssCollectorService: asValue({ fetchFeed: vi.fn() }),
+            htmlParserService: asValue({ parseArticle: vi.fn() }),
+            feedItemRepository: asValue(feedItemRepository),
+            rawArticleRepository: asValue({ create: vi.fn() }),
+            categorizationService: asValue({ categorize: vi.fn() }),
+            summarizerService: asValue({ summarize: vi.fn() }),
+        });
+
+        app = express();
+
+        await handleMiddleware(app, express, container);
+    });
+
+    it('returns only the categories this user actually has items in', async () => {
+        feedItemRepository.distinctCategoriesForUser.mockResolvedValue(['Docker', 'AI']);
+
+        const response = await request(app).get('/feed/categories');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(['Docker', 'AI']);
+        expect(feedItemRepository.distinctCategoriesForUser).toHaveBeenCalledWith(userId);
+    });
+
+    it('returns an empty array for a user with no items yet', async () => {
+        const response = await request(app).get('/feed/categories');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([]);
+    });
+});
+
 describe('POST /feed/items/:id/summary', () => {
     let app: express.Express;
     let feedItemRepository: {

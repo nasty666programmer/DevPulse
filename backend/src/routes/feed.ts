@@ -23,6 +23,12 @@ export default class FeedRoutes {
             },
             {
                 method: 'get',
+                path: '/categories',
+                handler: 'getCategories',
+                middleware: ['authMiddleware'],
+            },
+            {
+                method: 'get',
                 path: '/fetch-item',
                 handler: 'fetchFeedItem',
                 middleware: ['authMiddleware'],

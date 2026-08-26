@@ -18,4 +18,7 @@ export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemCategory
     getAll(userId: string, limit: number, category?: Category): Promise<IPopulatedFeedItem[]>;
     findById(id: string, userId: string): Promise<IFeedItemDocument | null>;
     setSummary(id: string, summary: string): Promise<void>;
+    // Only the categories this user actually has at least one item in — not
+    // the full fixed taxonomy. Powers the frontend's category filter row.
+    distinctCategoriesForUser(userId: string): Promise<Category[]>;
 }

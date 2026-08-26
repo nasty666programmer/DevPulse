@@ -35,6 +35,7 @@ describe('FeedService', () => {
         getRecentByCategory: Mock<IFeedItemRepository['getRecentByCategory']>;
         findById: Mock<IFeedItemRepository['findById']>;
         setSummary: Mock<IFeedItemRepository['setSummary']>;
+        distinctCategoriesForUser: Mock<IFeedItemRepository['distinctCategoriesForUser']>;
     };
     let rawArticleRepository: {
         create: Mock<IRawArticleRepository['create']>;
@@ -54,6 +55,7 @@ describe('FeedService', () => {
             getRecentByCategory: vi.fn<IFeedItemRepository['getRecentByCategory']>(),
             findById: vi.fn<IFeedItemRepository['findById']>(),
             setSummary: vi.fn<IFeedItemRepository['setSummary']>(),
+            distinctCategoriesForUser: vi.fn<IFeedItemRepository['distinctCategoriesForUser']>(),
         };
         rawArticleRepository = {
             create: vi.fn<IRawArticleRepository['create']>(),
@@ -303,6 +305,25 @@ describe('FeedService', () => {
                     summary: null,
                 },
             ]);
+        });
+    });
+
+    describe('listCategories', () => {
+        it('delegates to the repository for the given user', async () => {
+            feedItemRepository.distinctCategoriesForUser.mockResolvedValue(['Docker', 'AI']);
+
+            const categories = await feedService.listCategories(USER_ID);
+
+            expect(feedItemRepository.distinctCategoriesForUser).toHaveBeenCalledWith(USER_ID);
+            expect(categories).toEqual(['Docker', 'AI']);
+        });
+
+        it('returns an empty list for a user with no items yet', async () => {
+            feedItemRepository.distinctCategoriesForUser.mockResolvedValue([]);
+
+            const categories = await feedService.listCategories(USER_ID);
+
+            expect(categories).toEqual([]);
         });
     });
 

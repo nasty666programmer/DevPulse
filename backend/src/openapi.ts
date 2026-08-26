@@ -110,6 +110,27 @@ const openapiSpec = {
                 },
             },
         },
+        '/feed/categories': {
+            get: {
+                summary: 'Категории, в которых у текущего юзера реально есть статьи',
+                description: 'Не полный фиксированный список — только те категории, где есть хотя бы один feedItem этого юзера. Пустой массив для нового юзера без статей.',
+                tags: ['feed'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'array',
+                                    items: { type: 'string', enum: ['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'] },
+                                },
+                            },
+                        },
+                    },
+                    '401': { description: 'Не авторизован' },
+                },
+            },
+        },
         '/feed/list': {
             get: {
                 summary: 'Пейджинированный список сконфигурированных RSS-фидов',

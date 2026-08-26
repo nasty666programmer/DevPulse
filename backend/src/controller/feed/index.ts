@@ -41,6 +41,12 @@ export default class FeedController {
         res.json(items);
     }
 
+    async getCategories(req: Request, res: Response) {
+        const categories = await this.feedService.listCategories(req.userId as string);
+
+        res.json(categories);
+    }
+
     async summarizeItem(req: Request, res: Response) {
         try {
             const summary = await this.feedService.summarizeItem(req.userId as string, req.params.id as string);
