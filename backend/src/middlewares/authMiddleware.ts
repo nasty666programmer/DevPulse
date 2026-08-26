@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 import config from '../modules/config/index.js';
 import { UnauthorizedError } from './errors.js';
 import type { MiddlewareDefinition } from '../interfaces/middleware.js';
@@ -15,7 +15,7 @@ export default class AuthMiddleware implements MiddlewareDefinition {
     // caller (registerRoutes) runs middlewares inside its own try/catch and
     // maps this specific error to 401; a plain `return`/`res.status()` here
     // wouldn't stop that caller's loop from reaching the controller next.
-    async useMiddleware(req: Request, res: Response): Promise<void> {
+    async useMiddleware(req: Request): Promise<void> {
         const token = req.cookies?.[config.sessionCookieName];
 
         if (!token) {
