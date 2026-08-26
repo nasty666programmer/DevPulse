@@ -8,6 +8,7 @@ export interface IFeedItem {
     date: Date;
     rawArticleId: Types.ObjectId;
     category: Category;
+    userId: Types.ObjectId;
     // Optional on create (Mongoose defaults it to null) — every existing
     // FeedItemRepository.create() call site is unaffected by this field.
     summary?: string | null;

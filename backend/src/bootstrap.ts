@@ -5,6 +5,7 @@ import { createDatabaseContainer } from './db/container.js';
 import { createProvidersContainer } from './providers/container.js';
 import Logger from './modules/logger/index.js';
 import type MongoDB from './db/mongo.js';
+import { createMiddlewareContainer } from './middlewares/container.js';
 
 export default async function bootstrap() {
     const container = createContainer({
@@ -16,6 +17,7 @@ export default async function bootstrap() {
     createServicesContainer(container);
     createDatabaseContainer(container);
     createProvidersContainer(container);
+    createMiddlewareContainer(container);
 
     // Resolve the DI-registered singleton (not a throwaway instance) so callers —
     // health checks, graceful shutdown, bin/collect.ts — see the same connection.

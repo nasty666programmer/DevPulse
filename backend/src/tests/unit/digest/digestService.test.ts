@@ -8,6 +8,8 @@ import type { IFeedItemCategoryReader } from '../../../db/repositories/feed/inte
 import type { IPopulatedFeedItem } from '../../../db/models/feed/interface/feedItem.js';
 import type { Category } from '../../../modules/categorization/interfaces/index.js';
 
+const USER_ID = new Types.ObjectId().toString();
+
 function populatedItem(title: string, category: Category, date: Date): IPopulatedFeedItem {
     const rawArticleId = new Types.ObjectId();
 
@@ -17,6 +19,7 @@ function populatedItem(title: string, category: Category, date: Date): IPopulate
         content: 'text',
         date,
         category,
+        userId: new Types.ObjectId(USER_ID),
         summary: null,
         rawArticleId: {
             _id: rawArticleId,
@@ -49,12 +52,14 @@ describe('DigestService', () => {
     });
 
     describe('generateDigest', () => {
-        it('asks the repository for recent items per category', async () => {
+        it('asks the repository for recent items per category, scoped to the given user', async () => {
             digestRepository.save.mockResolvedValue({ generatedAt: new Date(), articles: [] });
 
-            await service.generateDigest();
+            await service.generateDigest(USER_ID);
 
-            const requestedCategories = feedItemRepository.getRecentByCategory.mock.calls.map((call) => call[0]);
+            const requestedUserIds = feedItemRepository.getRecentByCategory.mock.calls.map((call) => call[0]);
+            const requestedCategories = feedItemRepository.getRecentByCategory.mock.calls.map((call) => call[1]);
+            expect(requestedUserIds.every((id) => id === USER_ID)).toBe(true);
             expect(requestedCategories).toEqual(
                 expect.arrayContaining(['Node.js', 'Docker', 'AWS', 'DevOps', 'AI', 'Прочее'])
             );
@@ -62,7 +67,7 @@ describe('DigestService', () => {
 
         it('round-robins one article per category per round instead of exhausting a single category first', async () => {
             const date = new Date('2026-08-19');
-            feedItemRepository.getRecentByCategory.mockImplementation(async (category) => {
+            feedItemRepository.getRecentByCategory.mockImplementation(async (_userId, category) => {
                 if (category === 'Node.js') {
                     return [
                         populatedItem('node-1', 'Node.js', date),
@@ -74,11 +79,11 @@ describe('DigestService', () => {
                 }
                 return [];
             });
-            digestRepository.save.mockImplementation(async (articles) => ({ generatedAt: date, articles }));
+            digestRepository.save.mockImplementation(async (_userId, articles) => ({ generatedAt: date, articles }));
 
-            await service.generateDigest();
+            await service.generateDigest(USER_ID);
 
-            const savedArticles = digestRepository.save.mock.calls[0][0];
+            const savedArticles = digestRepository.save.mock.calls[0][1];
             const titles = savedArticles.map((a) => a.title);
 
             // First round takes one from each category before a second round ever
@@ -93,11 +98,11 @@ describe('DigestService', () => {
                 populatedItem('a', 'Node.js', date),
                 populatedItem('b', 'Node.js', date),
             ]);
-            digestRepository.save.mockImplementation(async (articles) => ({ generatedAt: date, articles }));
+            digestRepository.save.mockImplementation(async (_userId, articles) => ({ generatedAt: date, articles }));
 
-            await service.generateDigest();
+            await service.generateDigest(USER_ID);
 
-            const savedArticles = digestRepository.save.mock.calls[0][0];
+            const savedArticles = digestRepository.save.mock.calls[0][1];
             expect(savedArticles.length).toBeLessThanOrEqual(10);
         });
 
@@ -105,26 +110,27 @@ describe('DigestService', () => {
             const saved: DigestData = { generatedAt: new Date('2026-08-19'), articles: [] };
             digestRepository.save.mockResolvedValue(saved);
 
-            const result = await service.generateDigest();
+            const result = await service.generateDigest(USER_ID);
 
             expect(result).toBe(saved);
         });
     });
 
     describe('getLatestDigest', () => {
-        it('returns the latest digest from the repository', async () => {
+        it('returns the latest digest from the repository for the given user', async () => {
             const digest: DigestData = { generatedAt: new Date('2026-08-19'), articles: [] };
             digestRepository.getLatest.mockResolvedValue(digest);
 
-            const result = await service.getLatestDigest();
+            const result = await service.getLatestDigest(USER_ID);
 
             expect(result).toBe(digest);
+            expect(digestRepository.getLatest).toHaveBeenCalledWith(USER_ID);
         });
 
         it('returns null when no digest has been generated yet', async () => {
             digestRepository.getLatest.mockResolvedValue(null);
 
-            const result = await service.getLatestDigest();
+            const result = await service.getLatestDigest(USER_ID);
 
             expect(result).toBeNull();
         });

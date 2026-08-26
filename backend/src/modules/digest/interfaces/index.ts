@@ -17,14 +17,14 @@ export interface DigestData {
 }
 
 export interface IDigestRepository {
-    save(articles: DigestArticle[]): Promise<DigestData>;
-    getLatest(): Promise<DigestData | null>;
+    save(userId: string, articles: DigestArticle[]): Promise<DigestData>;
+    getLatest(userId: string): Promise<DigestData | null>;
 }
 
 export interface IDigestGenerator {
-    generateDigest(): Promise<DigestData>;
+    generateDigest(userId: string): Promise<DigestData>;
 }
 
 export interface IDigestReader {
-    getLatestDigest(): Promise<DigestData | null>;
+    getLatestDigest(userId: string): Promise<DigestData | null>;
 }

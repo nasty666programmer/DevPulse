@@ -76,10 +76,12 @@ export default class TelegramController {
     }
 
     async listChannels(req: Request, res: Response) {
+        const userId = req.userId as string;
+
         // No ?page — the unpaginated flat list, used by the channel-chip
         // overview row, which shows every registered channel at once.
         if (req.query.page === undefined) {
-            const channels = await this.telegramChannelRepository.findAll();
+            const channels = await this.telegramChannelRepository.findAllForUser(userId);
 
             res.json(channels.map(toChannelDto));
             return;
@@ -90,8 +92,8 @@ export default class TelegramController {
         const offset = (page - 1) * limit;
 
         const [channels, total] = await Promise.all([
-            this.telegramChannelRepository.findPage(offset, limit),
-            this.telegramChannelRepository.count(),
+            this.telegramChannelRepository.findPageForUser(userId, offset, limit),
+            this.telegramChannelRepository.countForUser(userId),
         ]);
 
         res.json({
@@ -103,10 +105,12 @@ export default class TelegramController {
     }
 
     async listPosts(req: Request, res: Response) {
+        const userId = req.userId as string;
         const channelIds = parseChannelIds(req.query.channelIds);
 
         if (channelIds.length > 0) {
             const posts = await this.telegramPostRepository.findRecentByChannelIds(
+                userId,
                 channelIds,
                 config.telegramPostsPerChannelLimit
             );
@@ -116,7 +120,7 @@ export default class TelegramController {
         }
 
         const limit = Number(req.query.limit) || config.defaultItemsLimit;
-        const posts = await this.telegramPostRepository.findRecent(limit);
+        const posts = await this.telegramPostRepository.findRecent(userId, limit);
 
         res.json(posts.map(toPostDto));
     }
@@ -129,7 +133,7 @@ export default class TelegramController {
             return;
         }
 
-        const post = await this.telegramPostRepository.findById(id);
+        const post = await this.telegramPostRepository.findById(id, req.userId as string);
 
         if (!post) {
             res.status(404).json({ error: 'Telegram post not found' });

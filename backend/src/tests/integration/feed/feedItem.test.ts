@@ -7,6 +7,7 @@ import handleMiddleware from '../../../middleware.js';
 import FeedController from '../../../controller/feed/index.js';
 import FeedService from '../../../modules/feed/services/index.js';
 import { SummarizerTimeoutError, SummarizerUnavailableError } from '../../../providers/summarizer/errors.js';
+import AuthMiddleware from '../../../middlewares/authMiddleware.js';
 
 describe('GET /feed/item', () => {
     let app: express.Express;
@@ -21,6 +22,7 @@ describe('GET /feed/item', () => {
         });
 
         container.register({
+            authMiddleware: asValue({ useMiddleware: vi.fn().mockResolvedValue(undefined) }),
             feedController: asClass(FeedController).scoped(),
             feedService: asClass(FeedService).scoped(),
             rssCollectorService: asValue(rssCollectorService),
@@ -64,6 +66,7 @@ describe('GET /feed/item', () => {
 describe('GET /feed/items', () => {
     let app: express.Express;
     let feedItemRepository: { getAll: ReturnType<typeof vi.fn> };
+    const userId = new Types.ObjectId().toString();
 
     beforeEach(async () => {
         feedItemRepository = { getAll: vi.fn().mockResolvedValue([]) };
@@ -74,6 +77,11 @@ describe('GET /feed/items', () => {
         });
 
         container.register({
+            authMiddleware: asValue({
+                useMiddleware: vi.fn(async (req) => {
+                    req.userId = userId;
+                }),
+            }),
             feedController: asClass(FeedController).scoped(),
             feedService: asClass(FeedService).scoped(),
             rssCollectorService: asValue({ fetchFeed: vi.fn() }),
@@ -93,14 +101,14 @@ describe('GET /feed/items', () => {
         const response = await request(app).get('/feed/items?category=Docker');
 
         expect(response.status).toBe(200);
-        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, 'Docker');
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(userId, 20, 'Docker');
     });
 
     it('queries without a category filter when none is given', async () => {
         const response = await request(app).get('/feed/items');
 
         expect(response.status).toBe(200);
-        expect(feedItemRepository.getAll).toHaveBeenCalledWith(20, undefined);
+        expect(feedItemRepository.getAll).toHaveBeenCalledWith(userId, 20, undefined);
     });
 });
 
@@ -130,6 +138,7 @@ describe('POST /feed/items/:id/summary', () => {
         });
 
         container.register({
+            authMiddleware: asValue({ useMiddleware: vi.fn().mockResolvedValue(undefined) }),
             feedController: asClass(FeedController).scoped(),
             feedService: asClass(FeedService).scoped(),
             rssCollectorService: asValue({ fetchFeed: vi.fn() }),
@@ -213,5 +222,64 @@ describe('POST /feed/items/:id/summary', () => {
 
         expect(response.status).toBe(503);
         expect(feedItemRepository.setSummary).not.toHaveBeenCalled();
+    });
+});
+
+// Uses the real AuthMiddleware (not the stubbed pass-through above) to prove
+// GET /feed/items is actually gated end to end, not just that the route
+// wiring calls whatever "authMiddleware" happens to be registered.
+describe('GET /feed/items — auth gate', () => {
+    let app: express.Express;
+    let authService: { verifySession: ReturnType<typeof vi.fn> };
+    let feedItemRepository: { getOne: ReturnType<typeof vi.fn>; getAll: ReturnType<typeof vi.fn>; getRecentByCategory: ReturnType<typeof vi.fn> };
+
+    beforeEach(async () => {
+        authService = { verifySession: vi.fn() };
+        feedItemRepository = { getOne: vi.fn(), getAll: vi.fn().mockResolvedValue([]), getRecentByCategory: vi.fn() };
+
+        const container = createContainer({
+            injectionMode: InjectionMode.PROXY,
+            strict: true,
+        });
+
+        container.register({
+            authMiddleware: asClass(AuthMiddleware).scoped(),
+            authService: asValue(authService),
+            feedController: asClass(FeedController).scoped(),
+            feedService: asClass(FeedService).scoped(),
+            rssCollectorService: asValue({ fetchFeed: vi.fn() }),
+            htmlParserService: asValue({ parseArticle: vi.fn() }),
+            feedItemRepository: asValue(feedItemRepository),
+            rawArticleRepository: asValue({ create: vi.fn() }),
+            categorizationService: asValue({ categorize: vi.fn() }),
+            summarizerService: asValue({ summarize: vi.fn() }),
+        });
+
+        app = express();
+        await handleMiddleware(app, express, container);
+    });
+
+    it('responds 401 without reaching the controller when no session cookie is present', async () => {
+        const response = await request(app).get('/feed/items');
+
+        expect(response.status).toBe(401);
+        expect(authService.verifySession).not.toHaveBeenCalled();
+    });
+
+    it('responds 401 when the session cookie does not resolve to a user', async () => {
+        authService.verifySession.mockResolvedValue(null);
+
+        const response = await request(app).get('/feed/items').set('Cookie', 'devpulse_session=stale-token');
+
+        expect(response.status).toBe(401);
+    });
+
+    it('reaches the controller when the session cookie is valid', async () => {
+        authService.verifySession.mockResolvedValue({ _id: new Types.ObjectId() });
+
+        const response = await request(app).get('/feed/items').set('Cookie', 'devpulse_session=valid-token');
+
+        expect(response.status).toBe(200);
+        expect(authService.verifySession).toHaveBeenCalledWith('valid-token');
     });
 });

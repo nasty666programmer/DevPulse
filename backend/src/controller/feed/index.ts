@@ -13,13 +13,13 @@ export default class FeedController {
     }
 
     async getItem(req: Request, res: Response) {
-        const feedItem = await this.feedService.getItem();
+        const feedItem = await this.feedService.getItem(req.userId as string);
 
         res.json(feedItem);
     }
 
     async fetchFeedItem(req: Request, res: Response) {
-        const feed = await this.feedService.fetchFeedItems();
+        const feed = await this.feedService.fetchFeedItems(req.userId as string);
 
         res.json(feed);
     }
@@ -36,14 +36,14 @@ export default class FeedController {
         const limit = Number(req.query.limit) || config.defaultItemsLimit;
         const category = typeof req.query.category === 'string' ? (req.query.category as Category) : undefined;
 
-        const items = await this.feedService.listItems(limit, category);
+        const items = await this.feedService.listItems(req.userId as string, limit, category);
 
         res.json(items);
     }
 
     async summarizeItem(req: Request, res: Response) {
         try {
-            const summary = await this.feedService.summarizeItem(req.params.id as string);
+            const summary = await this.feedService.summarizeItem(req.userId as string, req.params.id as string);
 
             res.json({ summary });
         } catch (error) {

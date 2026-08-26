@@ -3,18 +3,18 @@ import type { DigestArticle, DigestData } from '../../../modules/digest/interfac
 import type { IDigestRepository } from './interface/digestRepository.js';
 
 export default class DigestRepository implements IDigestRepository {
-    async save(articles: DigestArticle[]): Promise<DigestData> {
+    async save(userId: string, articles: DigestArticle[]): Promise<DigestData> {
         const generatedAt = new Date();
 
-        // Singleton: replaces the one existing digest document wholesale (or
-        // creates it on first run) — there's no per-day key to match on anymore.
-        await DigestModel.findOneAndReplace({}, { generatedAt, articles }, { upsert: true });
+        // One per user: replaces that user's existing digest document wholesale
+        // (or creates it on first run) — matched on userId, not a per-day key.
+        await DigestModel.findOneAndReplace({ userId }, { userId, generatedAt, articles }, { upsert: true });
 
         return { generatedAt, articles };
     }
 
-    async getLatest(): Promise<DigestData | null> {
-        const digest = await DigestModel.findOne().lean();
+    async getLatest(userId: string): Promise<DigestData | null> {
+        const digest = await DigestModel.findOne({ userId }).lean();
 
         if (!digest) {
             return null;

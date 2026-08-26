@@ -4,6 +4,7 @@ export interface RouteDefinition {
     method: HttpMethod;
     path: string;
     handler: string;
+    middleware?: string[];
 }
 
 export interface RouteGroup {

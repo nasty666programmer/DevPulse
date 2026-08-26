@@ -28,7 +28,7 @@ function user() {
 }
 
 function setupApp() {
-    const authService = { signInWithGoogle: vi.fn(), verifySession: vi.fn() };
+    const authService = { signInWithGoogle: vi.fn(), verifySession: vi.fn(), logout: vi.fn() };
 
     const container = createContainer({
         injectionMode: InjectionMode.PROXY,
@@ -67,6 +67,7 @@ describe('POST /auth/google', () => {
                 email: stored.email,
                 name: stored.name,
                 avatarUrl: stored.avatarUrl,
+                telegramLinked: false,
             },
         });
         expect(authService.signInWithGoogle).toHaveBeenCalledWith('google-id-token');
@@ -124,6 +125,7 @@ describe('GET /auth/me', () => {
                 email: stored.email,
                 name: stored.name,
                 avatarUrl: stored.avatarUrl,
+                telegramLinked: false,
             },
         });
         expect(authService.verifySession).toHaveBeenCalledWith('valid-token');
@@ -142,20 +144,30 @@ describe('GET /auth/me', () => {
 
 describe('POST /auth/logout', () => {
     let app: express.Express;
+    let authService: { signInWithGoogle: ReturnType<typeof vi.fn>; verifySession: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> };
 
     beforeEach(async () => {
         const setup = setupApp();
+        authService = setup.authService;
         app = express();
         await handleMiddleware(app, express, setup.container);
     });
 
-    it('clears the session cookie and responds 204', async () => {
+    it('revokes the token and clears the session cookie', async () => {
         const response = await request(app)
             .post('/auth/logout')
             .set('Cookie', `${SESSION_COOKIE_NAME}=some-token`);
 
         expect(response.status).toBe(204);
+        expect(authService.logout).toHaveBeenCalledWith('some-token');
         const setCookie = response.headers['set-cookie'];
         expect(setCookie[0]).toContain(`${SESSION_COOKIE_NAME}=;`);
+    });
+
+    it('responds 204 without calling logout when no session cookie is present', async () => {
+        const response = await request(app).post('/auth/logout');
+
+        expect(response.status).toBe(204);
+        expect(authService.logout).not.toHaveBeenCalled();
     });
 });

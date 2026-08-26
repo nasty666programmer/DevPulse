@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 
 export interface ITelegramPost {
+    userId: Types.ObjectId;
     channelId: number;
     messageId: number;
     text: string;

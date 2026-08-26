@@ -5,6 +5,9 @@ import type { AwilixContainer } from 'awilix';
 declare module 'express-serve-static-core' {
     interface Request {
         scope: AwilixContainer;
+        // Set by AuthMiddleware once a route's `middleware` list includes it —
+        // absent on routes that don't require auth, so it stays optional.
+        userId?: string;
     }
 }
 

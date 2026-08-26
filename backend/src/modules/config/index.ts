@@ -133,12 +133,6 @@ const config = {
     get googleClientId(): string {
         return process.env.GOOGLE_CLIENT_ID || '';
     },
-    // Secret used to sign/verify our own session cookie (a JWT carrying just
-    // the user id) — unrelated to Google's keys, which google-auth-library
-    // fetches and verifies against on its own.
-    get sessionSecret(): string {
-        return process.env.SESSION_SECRET || '';
-    },
     get sessionCookieName(): string {
         return process.env.SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME;
     },

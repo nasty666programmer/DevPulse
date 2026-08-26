@@ -16,6 +16,7 @@ function setupApp() {
     });
 
     container.register({
+        authMiddleware: asValue({ useMiddleware: vi.fn().mockResolvedValue(undefined) }),
         digestController: asClass(DigestController).scoped(),
         digestService: asClass(DigestService).scoped(),
         feedItemRepository: asValue(feedItemRepository),

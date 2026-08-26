@@ -27,4 +27,12 @@ export default class UserRepository implements IUserRepository {
 
         return user as IUserDocument;
     }
+
+    async findByTelegramUserId(telegramUserId: number): Promise<IUserDocument | null> {
+        return UserModel.findOne({ telegramUserId });
+    }
+
+    async setTelegramUserId(userId: string, telegramUserId: number): Promise<void> {
+        await UserModel.updateOne({ _id: userId }, { $set: { telegramUserId } });
+    }
 }

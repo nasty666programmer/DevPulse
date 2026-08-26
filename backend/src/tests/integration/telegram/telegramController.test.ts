@@ -15,6 +15,8 @@ vi.mock('../../../modules/config/index.js', () => ({
     },
 }));
 
+const USER_ID = new Types.ObjectId().toString();
+
 function channel(overrides: Partial<{ channelId: number; title: string }> = {}) {
     return {
         _id: new Types.ObjectId(),
@@ -39,10 +41,10 @@ function post(overrides: Partial<{ channelId: number; text: string }> = {}) {
 
 function setupApp() {
     const telegramChannelRepository = {
-        findAll: vi.fn(),
+        findAllForUser: vi.fn(),
         findAllWithUsername: vi.fn(),
-        findPage: vi.fn(),
-        count: vi.fn(),
+        findPageForUser: vi.fn(),
+        countForUser: vi.fn(),
     };
     const telegramPostRepository = {
         create: vi.fn(),
@@ -60,6 +62,11 @@ function setupApp() {
     });
 
     container.register({
+        authMiddleware: asValue({
+            useMiddleware: vi.fn(async (req) => {
+                req.userId = USER_ID;
+            }),
+        }),
         telegramController: asClass(TelegramController).scoped(),
         telegramChannelRepository: asValue(telegramChannelRepository),
         telegramPostRepository: asValue(telegramPostRepository),
@@ -81,8 +88,8 @@ describe('GET /telegram/channels', () => {
         await handleMiddleware(app, express, setup.container);
     });
 
-    it('without ?page, returns the full flat list from findAll (unchanged existing behavior)', async () => {
-        telegramChannelRepository.findAll.mockResolvedValue([channel()]);
+    it('without ?page, returns the full flat list for the user (unchanged existing behavior)', async () => {
+        telegramChannelRepository.findAllForUser.mockResolvedValue([channel()]);
 
         const response = await request(app).get('/telegram/channels');
 
@@ -97,17 +104,19 @@ describe('GET /telegram/channels', () => {
                 addedAt: '2026-01-01T00:00:00.000Z',
             },
         ]);
-        expect(telegramChannelRepository.findPage).not.toHaveBeenCalled();
+        expect(telegramChannelRepository.findAllForUser).toHaveBeenCalledWith(USER_ID);
+        expect(telegramChannelRepository.findPageForUser).not.toHaveBeenCalled();
     });
 
-    it('with ?page, paginates via findPage/count and wraps the response with total/page/pageSize', async () => {
-        telegramChannelRepository.findPage.mockResolvedValue([channel({ channelId: -5 })]);
-        telegramChannelRepository.count.mockResolvedValue(9);
+    it('with ?page, paginates via findPageForUser/countForUser and wraps the response with total/page/pageSize', async () => {
+        telegramChannelRepository.findPageForUser.mockResolvedValue([channel({ channelId: -5 })]);
+        telegramChannelRepository.countForUser.mockResolvedValue(9);
 
         const response = await request(app).get('/telegram/channels?page=2&limit=4');
 
         expect(response.status).toBe(200);
-        expect(telegramChannelRepository.findPage).toHaveBeenCalledWith(4, 4);
+        expect(telegramChannelRepository.findPageForUser).toHaveBeenCalledWith(USER_ID, 4, 4);
+        expect(telegramChannelRepository.countForUser).toHaveBeenCalledWith(USER_ID);
         expect(response.body).toEqual({
             channels: [
                 {
@@ -125,12 +134,12 @@ describe('GET /telegram/channels', () => {
     });
 
     it('with ?page but no ?limit, falls back to config.telegramChannelsPageSize', async () => {
-        telegramChannelRepository.findPage.mockResolvedValue([]);
-        telegramChannelRepository.count.mockResolvedValue(0);
+        telegramChannelRepository.findPageForUser.mockResolvedValue([]);
+        telegramChannelRepository.countForUser.mockResolvedValue(0);
 
         await request(app).get('/telegram/channels?page=1');
 
-        expect(telegramChannelRepository.findPage).toHaveBeenCalledWith(0, 4);
+        expect(telegramChannelRepository.findPageForUser).toHaveBeenCalledWith(USER_ID, 0, 4);
     });
 });
 
@@ -145,13 +154,13 @@ describe('GET /telegram/posts', () => {
         await handleMiddleware(app, express, setup.container);
     });
 
-    it('without ?channelIds, keeps the existing findRecent(limit) behavior', async () => {
+    it('without ?channelIds, keeps the existing findRecent(userId, limit) behavior', async () => {
         telegramPostRepository.findRecent.mockResolvedValue([post()]);
 
         const response = await request(app).get('/telegram/posts');
 
         expect(response.status).toBe(200);
-        expect(telegramPostRepository.findRecent).toHaveBeenCalledWith(20);
+        expect(telegramPostRepository.findRecent).toHaveBeenCalledWith(USER_ID, 20);
         expect(telegramPostRepository.findRecentByChannelIds).not.toHaveBeenCalled();
     });
 
@@ -164,7 +173,7 @@ describe('GET /telegram/posts', () => {
         const response = await request(app).get('/telegram/posts?channelIds=-1,-2');
 
         expect(response.status).toBe(200);
-        expect(telegramPostRepository.findRecentByChannelIds).toHaveBeenCalledWith([-1, -2], 5);
+        expect(telegramPostRepository.findRecentByChannelIds).toHaveBeenCalledWith(USER_ID, [-1, -2], 5);
         expect(response.body).toHaveLength(2);
         expect(telegramPostRepository.findRecent).not.toHaveBeenCalled();
     });
@@ -191,6 +200,7 @@ describe('POST /telegram/posts/:id/summary', () => {
         const response = await request(app).post(`/telegram/posts/${id}/summary`);
 
         expect(response.status).toBe(404);
+        expect(telegramPostRepository.findById).toHaveBeenCalledWith(id, USER_ID);
         expect(summarizerService.summarize).not.toHaveBeenCalled();
     });
 

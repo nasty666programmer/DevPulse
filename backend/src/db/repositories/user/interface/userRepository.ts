@@ -4,4 +4,6 @@ import type { IGoogleProfile } from '../../../../providers/google/interface/goog
 export interface IUserRepository {
     findById(id: string): Promise<IUserDocument | null>;
     upsertFromGoogle(profile: IGoogleProfile): Promise<IUserDocument>;
+    findByTelegramUserId(telegramUserId: number): Promise<IUserDocument | null>;
+    setTelegramUserId(userId: string, telegramUserId: number): Promise<void>;
 }

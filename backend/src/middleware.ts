@@ -9,8 +9,10 @@ import type { Express, Router, Request, Response, NextFunction } from 'express';
 import type { AwilixContainer } from 'awilix';
 import type { RouteClassStatic, RouteGroup } from './interfaces/route.js';
 import type { ResolvedController } from './interfaces/express.js';
+import type { MiddlewareDefinition } from './interfaces/middleware.js';
 import Logger from './modules/logger/index.js';
 import config from './modules/config/index.js';
+import { UnauthorizedError } from './middlewares/errors.js';
 
 type ExpressModule = typeof import('express');
 
@@ -107,7 +109,23 @@ function registerRoutes(router: Router, routes: RouteGroup[]) {
                     Logger.info(`${req.method} ${req.originalUrl}`);
 
                     try {
-                        const controllerInstance = req.scope.resolve<ResolvedController>(controller);
+                        // Route-declared middleware names, resolved per-request from
+                        // req.scope (same reason controllers are resolved here and not
+                        // at registration time — the DI scope only exists per-request).
+                        // A middleware signals "stop" by throwing, not by returning —
+                        // returning normally here means "continue" and falls through to
+                        // the next middleware / the controller below.
+                        if (route.middleware) {
+                            for (const middlewareName of route.middleware) {
+                                const middlewareInstance =
+                                    req.scope.resolve<MiddlewareDefinition>(middlewareName);
+
+                                await middlewareInstance.useMiddleware(req, res);
+                            }
+                        }
+
+                        const controllerInstance =
+                            req.scope.resolve<ResolvedController>(controller);
                         const controllerMethod = controllerInstance[handler];
 
                         if (typeof controllerMethod !== 'function') {
@@ -116,6 +134,11 @@ function registerRoutes(router: Router, routes: RouteGroup[]) {
 
                         return await controllerMethod.call(controllerInstance, req, res, next);
                     } catch (error) {
+                        if (error instanceof UnauthorizedError) {
+                            res.status(401).json({ error: error.message });
+                            return;
+                        }
+
                         next(error);
                     }
                 }

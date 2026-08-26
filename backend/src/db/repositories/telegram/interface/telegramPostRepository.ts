@@ -5,11 +5,12 @@ import type {
 
 export interface ITelegramPostRepository {
     create(post: ITelegramPost): Promise<ITelegramPostDocument>;
-    findRecent(limit: number): Promise<ITelegramPostDocument[]>;
+    findRecent(userId: string, limit: number): Promise<ITelegramPostDocument[]>;
     findRecentByChannelIds(
+        userId: string,
         channelIds: number[],
         limitPerChannel: number
     ): Promise<ITelegramPostDocument[]>;
-    findById(id: string): Promise<ITelegramPostDocument | null>;
+    findById(id: string, userId: string): Promise<ITelegramPostDocument | null>;
     setSummary(id: string, summary: string): Promise<void>;
 }

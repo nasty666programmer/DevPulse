@@ -12,11 +12,14 @@ import type { ITelegramPostRepository } from '../../../db/repositories/telegram/
 import type { IProvider } from '../../../providers/interfaces.js';
 import type { TelegramPost } from '../../../providers/telegram/TelegramProvider.js';
 
+const USER_ID = new Types.ObjectId();
+
 function channel(
     overrides: Partial<{ channelId: number; username: string | null; title: string }> = {}
 ) {
     return {
         _id: new Types.ObjectId(),
+        userId: USER_ID,
         channelId: -1001111111111,
         username: 'channel_a',
         title: 'Channel A',
@@ -29,10 +32,10 @@ describe('TelegramCollectorService.collect', () => {
     let telegramProvider: { fetch: Mock<IProvider<TelegramPost>['fetch']> };
     let telegramChannelRepository: {
         findAllWithUsername: Mock<ITelegramChannelRepository['findAllWithUsername']>;
-        upsertByChannelId: Mock<ITelegramChannelRepository['upsertByChannelId']>;
-        findAll: Mock<ITelegramChannelRepository['findAll']>;
-        findPage: Mock<ITelegramChannelRepository['findPage']>;
-        count: Mock<ITelegramChannelRepository['count']>;
+        upsertByUserAndChannelId: Mock<ITelegramChannelRepository['upsertByUserAndChannelId']>;
+        findAllForUser: Mock<ITelegramChannelRepository['findAllForUser']>;
+        findPageForUser: Mock<ITelegramChannelRepository['findPageForUser']>;
+        countForUser: Mock<ITelegramChannelRepository['countForUser']>;
     };
     let telegramPostRepository: {
         create: Mock<ITelegramPostRepository['create']>;
@@ -49,10 +52,10 @@ describe('TelegramCollectorService.collect', () => {
         telegramProvider = { fetch: vi.fn<IProvider<TelegramPost>['fetch']>() };
         telegramChannelRepository = {
             findAllWithUsername: vi.fn<ITelegramChannelRepository['findAllWithUsername']>(),
-            upsertByChannelId: vi.fn<ITelegramChannelRepository['upsertByChannelId']>(),
-            findAll: vi.fn<ITelegramChannelRepository['findAll']>(),
-            findPage: vi.fn<ITelegramChannelRepository['findPage']>(),
-            count: vi.fn<ITelegramChannelRepository['count']>(),
+            upsertByUserAndChannelId: vi.fn<ITelegramChannelRepository['upsertByUserAndChannelId']>(),
+            findAllForUser: vi.fn<ITelegramChannelRepository['findAllForUser']>(),
+            findPageForUser: vi.fn<ITelegramChannelRepository['findPageForUser']>(),
+            countForUser: vi.fn<ITelegramChannelRepository['countForUser']>(),
         };
         telegramPostRepository = {
             create: vi.fn<ITelegramPostRepository['create']>(),
@@ -69,13 +72,14 @@ describe('TelegramCollectorService.collect', () => {
         });
     });
 
-    it('fetches and saves posts for every channel that has a public username', async () => {
+    it('fetches and saves posts for every channel that has a public username, attributed to its owner', async () => {
         telegramChannelRepository.findAllWithUsername.mockResolvedValue([channel()]);
         telegramProvider.fetch.mockResolvedValue([
             { messageId: 1, text: 'Hello', publishedAt: new Date('2026-08-19'), mediaUrls: [] },
         ]);
         telegramPostRepository.create.mockResolvedValue({
             _id: new Types.ObjectId(),
+            userId: USER_ID,
             channelId: -1001111111111,
             messageId: 1,
             text: 'Hello',
@@ -88,6 +92,7 @@ describe('TelegramCollectorService.collect', () => {
 
         expect(telegramProvider.fetch).toHaveBeenCalledWith('channel_a');
         expect(telegramPostRepository.create).toHaveBeenCalledWith({
+            userId: USER_ID,
             channelId: -1001111111111,
             messageId: 1,
             text: 'Hello',
@@ -114,6 +119,7 @@ describe('TelegramCollectorService.collect', () => {
             ]);
         telegramPostRepository.create.mockResolvedValue({
             _id: new Types.ObjectId(),
+            userId: USER_ID,
             channelId: -2,
             messageId: 5,
             text: 'B post',

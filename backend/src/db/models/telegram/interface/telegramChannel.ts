@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 
 export interface ITelegramChannel {
+    userId: Types.ObjectId;
     channelId: number;
     username: string | null;
     title: string;

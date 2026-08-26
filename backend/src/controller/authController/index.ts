@@ -62,6 +62,12 @@ export default class AuthController {
     }
 
     async logout(req: Request, res: Response) {
+        const token = req.cookies?.[config.sessionCookieName];
+
+        if (token) {
+            await this.authService.logout(token);
+        }
+
         res.clearCookie(config.sessionCookieName, {
             ...SESSION_COOKIE_OPTIONS,
             secure: config.cookieSecure,

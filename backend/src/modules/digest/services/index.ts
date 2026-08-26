@@ -28,10 +28,14 @@ export default class DigestService {
      * category) instead of taking the N most recent overall, so the digest isn't
      * dominated by whichever category happens to have collected the most items.
      */
-    async selectArticles(): Promise<DigestArticle[]> {
+    async selectArticles(userId: string): Promise<DigestArticle[]> {
         const byCategory = await Promise.all(
             ALL_CATEGORIES.map(async (category) => {
-                const items = await this.feedItemRepository.getRecentByCategory(category, PER_CATEGORY_FETCH_LIMIT);
+                const items = await this.feedItemRepository.getRecentByCategory(
+                    userId,
+                    category,
+                    PER_CATEGORY_FETCH_LIMIT
+                );
 
                 return items.map(mapPopulatedFeedItem);
             })
@@ -54,13 +58,13 @@ export default class DigestService {
         return result;
     }
 
-    async generateDigest(): Promise<DigestData> {
-        const articles = await this.selectArticles();
+    async generateDigest(userId: string): Promise<DigestData> {
+        const articles = await this.selectArticles(userId);
 
-        return this.digestRepository.save(articles);
+        return this.digestRepository.save(userId, articles);
     }
 
-    async getLatestDigest(): Promise<DigestData | null> {
-        return this.digestRepository.getLatest();
+    async getLatestDigest(userId: string): Promise<DigestData | null> {
+        return this.digestRepository.getLatest(userId);
     }
 }

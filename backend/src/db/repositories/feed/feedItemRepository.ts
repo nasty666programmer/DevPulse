@@ -12,12 +12,12 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return await FeedItemModel.create(data);
     }
 
-    async getOne(): Promise<IFeedItemDocument | null> {
-        return await FeedItemModel.findOne();
+    async getOne(userId: string): Promise<IFeedItemDocument | null> {
+        return await FeedItemModel.findOne({ userId });
     }
 
-    async getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]> {
-        const filter = category ? { category } : {};
+    async getAll(userId: string, limit: number, category?: Category): Promise<IPopulatedFeedItem[]> {
+        const filter = category ? { userId, category } : { userId };
 
         const items = await FeedItemModel.find(filter)
             .sort({ date: -1 })
@@ -29,8 +29,8 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return items as unknown as IPopulatedFeedItem[];
     }
 
-    async getRecentByCategory(category: Category, limit: number): Promise<IPopulatedFeedItem[]> {
-        const items = await FeedItemModel.find({ category })
+    async getRecentByCategory(userId: string, category: Category, limit: number): Promise<IPopulatedFeedItem[]> {
+        const items = await FeedItemModel.find({ userId, category })
             .sort({ date: -1 })
             .limit(limit)
             .populate('rawArticleId')
@@ -40,8 +40,8 @@ export default class FeedItemRepository implements IFeedItemRepository {
         return items as unknown as IPopulatedFeedItem[];
     }
 
-    async findById(id: string): Promise<IFeedItemDocument | null> {
-        return await FeedItemModel.findById(id);
+    async findById(id: string, userId: string): Promise<IFeedItemDocument | null> {
+        return await FeedItemModel.findOne({ _id: id, userId });
     }
 
     async setSummary(id: string, summary: string): Promise<void> {

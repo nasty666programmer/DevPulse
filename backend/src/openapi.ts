@@ -38,6 +38,15 @@ const telegramChannelSchema = {
     },
 };
 
+const feedSourceSchema = {
+    type: 'object',
+    properties: {
+        id: { type: 'string' },
+        url: { type: 'string' },
+        addedAt: { type: 'string', format: 'date-time' },
+    },
+};
+
 const userSchema = {
     type: 'object',
     properties: {
@@ -45,6 +54,7 @@ const userSchema = {
         email: { type: 'string' },
         name: { type: 'string' },
         avatarUrl: { type: 'string', nullable: true },
+        telegramLinked: { type: 'boolean' },
     },
 };
 
@@ -414,10 +424,84 @@ const openapiSpec = {
         '/auth/logout': {
             post: {
                 summary: 'Завершить сессию',
-                description: 'Очищает сессионную куку. Стейтлесс — на сервере ничего не инвалидируется.',
+                description: 'Удаляет запись сессии из БД (Token) и очищает cookie — старое значение куки перестаёт работать.',
                 tags: ['auth'],
                 responses: {
-                    '204': { description: 'Кука очищена' },
+                    '204': { description: 'Сессия отозвана, кука очищена' },
+                },
+            },
+        },
+        '/users/me/telegram-link-code': {
+            post: {
+                summary: 'Получить одноразовый код для привязки Telegram-аккаунта',
+                description:
+                    'Требует авторизации. Код действителен 10 минут, отправляется боту — тот привязывает Telegram-отправителя к текущему аккаунту. Запрос нового кода отменяет предыдущий.',
+                tags: ['telegram-link'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        code: { type: 'string' },
+                                        expiresAt: { type: 'string', format: 'date-time' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    '401': { description: 'Не авторизован' },
+                },
+            },
+        },
+        '/feed-sources': {
+            post: {
+                summary: 'Добавить свой RSS-источник',
+                description: 'Требует авторизации. Тело: { url }. Имя источника не задаётся — берётся из самого фида при сборе.',
+                tags: ['feed-sources'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: { type: 'object', required: ['url'], properties: { url: { type: 'string' } } },
+                        },
+                    },
+                },
+                responses: {
+                    '201': {
+                        description: 'Источник добавлен',
+                        content: { 'application/json': { schema: feedSourceSchema } },
+                    },
+                    '400': { description: 'url отсутствует или не является http(s)-адресом' },
+                    '401': { description: 'Не авторизован' },
+                    '409': { description: 'Этот URL уже добавлен этим пользователем' },
+                },
+            },
+            get: {
+                summary: 'Список своих RSS-источников',
+                description: 'Требует авторизации. Возвращает только источники текущего пользователя.',
+                tags: ['feed-sources'],
+                responses: {
+                    '200': {
+                        description: 'OK',
+                        content: { 'application/json': { schema: { type: 'array', items: feedSourceSchema } } },
+                    },
+                    '401': { description: 'Не авторизован' },
+                },
+            },
+        },
+        '/feed-sources/{id}': {
+            delete: {
+                summary: 'Удалить свой RSS-источник',
+                description: 'Требует авторизации. Удаляет, только если источник принадлежит текущему пользователю.',
+                tags: ['feed-sources'],
+                parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+                responses: {
+                    '204': { description: 'Удалён' },
+                    '401': { description: 'Не авторизован' },
+                    '404': { description: 'Источник не найден или принадлежит другому пользователю' },
                 },
             },
         },

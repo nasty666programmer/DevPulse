@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectFeed, fetchFeedItems } from './api/feed';
 import { fetchLatestDigest, generateDigest } from './api/digest';
+import { addFeedSource, fetchFeedSources, removeFeedSource } from './api/feedSources';
 import { fetchTelegramChannels, fetchTelegramChannelsPage, fetchTelegramPostsForChannels } from './api/telegram';
 import { AuthGate } from './components/AuthGate';
 import { BottomNav } from './components/BottomNav';
@@ -8,7 +9,9 @@ import { CategoryFilter } from './components/CategoryFilter';
 import { DigestCard } from './components/DigestCard';
 import { FeedList } from './components/FeedList';
 import type { ListStatus } from './components/FeedList';
-import { RefreshIcon } from './components/icons';
+import { FeedSourceList } from './components/FeedSourceList';
+import type { FeedSourceListStatus } from './components/FeedSourceList';
+import { TelegramLinkCard } from './components/TelegramLinkCard';
 import { MobileTopBar } from './components/MobileTopBar';
 import { Sidebar } from './components/Sidebar';
 import { TelegramChannelList } from './components/TelegramChannelList';
@@ -19,7 +22,7 @@ import { useRelativeTime } from './hooks/useRelativeTime';
 import { useTheme } from './hooks/useTheme';
 import { NAV_ITEMS } from './nav';
 import type { TabId } from './nav';
-import type { Category, DigestDto, FeedItemDto, TelegramChannelDto, TelegramPostDto } from './types';
+import type { Category, DigestDto, FeedItemDto, FeedSourceDto, TelegramChannelDto, TelegramPostDto } from './types';
 
 const FEED_LIMIT = 20;
 const TELEGRAM_CHANNELS_PER_PAGE = 4;
@@ -40,7 +43,7 @@ function describeError(err: unknown): string {
 }
 
 export default function App() {
-  const { status: authStatus, user, errorMessage: authErrorMessage, signIn, signOut } = useAuth();
+  const { status: authStatus, user, errorMessage: authErrorMessage, signIn, signOut, refreshUser } = useAuth();
   const [theme, toggleTheme] = useTheme();
   const [activeTab, setActiveTab] = useState<TabId>('digest');
 
@@ -63,6 +66,10 @@ export default function App() {
   const [telegramPage, setTelegramPage] = useState(1);
   const [telegramPageCount, setTelegramPageCount] = useState(1);
   const [telegramErrorMessage, setTelegramErrorMessage] = useState('');
+
+  const [feedSourcesStatus, setFeedSourcesStatus] = useState<FeedSourceListStatus>('loading');
+  const [feedSources, setFeedSources] = useState<FeedSourceDto[]>([]);
+  const [feedSourcesErrorMessage, setFeedSourcesErrorMessage] = useState('');
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -118,9 +125,27 @@ export default function App() {
     }
   }, []);
 
+  const loadFeedSources = useCallback(async () => {
+    setFeedSourcesStatus('loading');
+    try {
+      const sources = await fetchFeedSources();
+      setFeedSources(sources);
+      setFeedSourcesStatus('ready');
+    } catch (err) {
+      setFeedSourcesErrorMessage(describeError(err));
+      setFeedSourcesStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
     void loadDigest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+    void loadFeedSources();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authStatus]);
 
@@ -190,6 +215,23 @@ export default function App() {
     void loadTelegram(telegramPage);
   }, [loadTelegram, telegramPage]);
 
+  const handleRetryFeedSources = useCallback(() => {
+    void loadFeedSources();
+  }, [loadFeedSources]);
+
+  // Prepends locally instead of refetching the whole list — the repository
+  // already returns newest-first, so this matches server order without an
+  // extra round trip.
+  const handleAddFeedSource = useCallback(async (url: string) => {
+    const source = await addFeedSource(url);
+    setFeedSources((current) => [source, ...current]);
+  }, []);
+
+  const handleRemoveFeedSource = useCallback(async (id: string) => {
+    await removeFeedSource(id);
+    setFeedSources((current) => current.filter((source) => source.id !== id));
+  }, []);
+
   if (authStatus === 'loading') {
     return <div className="auth-loading" aria-hidden="true" />;
   }
@@ -219,18 +261,6 @@ export default function App() {
           <div className={activeTab === 'telegram' ? 'wrap wrap--wide' : 'wrap'}>
             <div className="content-topbar">
               <span className="content-title">{activeLabel}</span>
-              <div className="content-topbar-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  aria-busy={isRefreshing}
-                >
-                  <RefreshIcon className={isRefreshing ? 'spin-icon' : undefined} />
-                  <span className="btn-label">{isRefreshing ? 'Обновляем…' : 'Обновить'}</span>
-                </button>
-              </div>
             </div>
 
             {activeTab === 'digest' && (
@@ -273,6 +303,20 @@ export default function App() {
                   pageCount={telegramPageCount}
                   onPageChange={setTelegramPage}
                 />
+              </>
+            )}
+
+            {activeTab === 'sources' && (
+              <>
+                <FeedSourceList
+                  status={feedSourcesStatus}
+                  sources={feedSources}
+                  errorMessage={feedSourcesErrorMessage}
+                  onRetry={handleRetryFeedSources}
+                  onAdd={handleAddFeedSource}
+                  onRemove={handleRemoveFeedSource}
+                />
+                <TelegramLinkCard linked={user.telegramLinked} onLinked={refreshUser} />
               </>
             )}
           </div>

@@ -6,9 +6,9 @@ import type {
 import type { ITelegramChannelRepository } from './interface/telegramChannelRepository.js';
 
 export default class TelegramChannelRepository implements ITelegramChannelRepository {
-    async upsertByChannelId(channel: ITelegramChannel): Promise<ITelegramChannelDocument> {
+    async upsertByUserAndChannelId(channel: ITelegramChannel): Promise<ITelegramChannelDocument> {
         const updated = await TelegramChannelModel.findOneAndUpdate(
-            { channelId: channel.channelId },
+            { userId: channel.userId, channelId: channel.channelId },
             { $set: channel },
             { upsert: true, new: true }
         );
@@ -21,18 +21,18 @@ export default class TelegramChannelRepository implements ITelegramChannelReposi
         return TelegramChannelModel.find({ username: { $ne: null } });
     }
 
-    async findAll(): Promise<ITelegramChannelDocument[]> {
-        return TelegramChannelModel.find().sort({ addedAt: -1 });
+    async findAllForUser(userId: string): Promise<ITelegramChannelDocument[]> {
+        return TelegramChannelModel.find({ userId }).sort({ addedAt: -1 });
     }
 
-    // Same order as findAll (most recently added first) — a stable ordering
-    // is what makes "page 2 of my channels" mean the same thing every time,
-    // instead of reshuffling as new posts come in.
-    async findPage(offset: number, limit: number): Promise<ITelegramChannelDocument[]> {
-        return TelegramChannelModel.find().sort({ addedAt: -1 }).skip(offset).limit(limit);
+    // Same order as findAllForUser (most recently added first) — a stable
+    // ordering is what makes "page 2 of my channels" mean the same thing
+    // every time, instead of reshuffling as new posts come in.
+    async findPageForUser(userId: string, offset: number, limit: number): Promise<ITelegramChannelDocument[]> {
+        return TelegramChannelModel.find({ userId }).sort({ addedAt: -1 }).skip(offset).limit(limit);
     }
 
-    async count(): Promise<number> {
-        return TelegramChannelModel.countDocuments();
+    async countForUser(userId: string): Promise<number> {
+        return TelegramChannelModel.countDocuments({ userId });
     }
 }

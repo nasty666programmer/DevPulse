@@ -76,6 +76,7 @@ export default class TelegramCollectorService implements ITelegramCollector {
         for (const post of recentPosts) {
             try {
                 await this.telegramPostRepository.create({
+                    userId: channel.userId,
                     channelId: channel.channelId,
                     messageId: post.messageId,
                     text: post.text,

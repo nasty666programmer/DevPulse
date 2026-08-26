@@ -7,6 +7,7 @@ export default class RssRoutes {
                 method: 'get',
                 path: '/collect',
                 handler: 'collectRss',
+                middleware: ['authMiddleware'],
             },
         ];
     }

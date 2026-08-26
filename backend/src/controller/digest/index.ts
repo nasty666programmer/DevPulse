@@ -9,7 +9,7 @@ export default class DigestController {
     }
 
     async getLatest(req: Request, res: Response) {
-        const digest = await this.digestService.getLatestDigest();
+        const digest = await this.digestService.getLatestDigest(req.userId as string);
 
         if (!digest) {
             res.status(204).end();
@@ -20,7 +20,7 @@ export default class DigestController {
     }
 
     async generate(req: Request, res: Response) {
-        const digest = await this.digestService.generateDigest();
+        const digest = await this.digestService.generateDigest(req.userId as string);
 
         res.json(digest);
     }

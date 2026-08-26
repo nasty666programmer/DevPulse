@@ -6,6 +6,8 @@ import HealthController from './health/index.js';
 import DigestController from './digest/index.js';
 import TelegramController from './telegramController/index.js';
 import AuthController from './authController/index.js';
+import FeedSourceController from './feedSource/index.js';
+import TelegramLinkController from './telegramLink/index.js';
 
 export function createControllersContainer(container: AwilixContainer) {
     return container.register({
@@ -15,5 +17,7 @@ export function createControllersContainer(container: AwilixContainer) {
         digestController: asClass(DigestController).scoped(),
         telegramController: asClass(TelegramController).scoped(),
         authController: asClass(AuthController).scoped(),
+        feedSourceController: asClass(FeedSourceController).scoped(),
+        telegramLinkController: asClass(TelegramLinkController).scoped(),
     });
 }

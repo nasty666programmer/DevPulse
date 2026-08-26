@@ -1,24 +1,29 @@
-import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 import config from '../../config/index.js';
 import { InvalidGoogleTokenError } from '../errors.js';
-import type { IAuthResult, IAuthService, ISessionPayload } from '../interfaces/index.js';
+import type { IAuthResult, IAuthService } from '../interfaces/index.js';
 import type { IGoogleAuthProvider } from '../../../providers/google/interface/googleAuthProvider.js';
 import type { IUserRepository } from '../../../db/repositories/user/interface/userRepository.js';
+import type { ITokenRepository } from '../../../db/repositories/token/interface/tokenRepository.js';
 import type { IUserDocument } from '../../../db/models/user/interface/user.js';
 
 export default class AuthService implements IAuthService {
     private readonly googleAuthProvider: IGoogleAuthProvider;
     private readonly userRepository: IUserRepository;
+    private readonly tokenRepository: ITokenRepository;
 
     constructor({
         googleAuthProvider,
         userRepository,
+        tokenRepository,
     }: {
         googleAuthProvider: IGoogleAuthProvider;
         userRepository: IUserRepository;
+        tokenRepository: ITokenRepository;
     }) {
         this.googleAuthProvider = googleAuthProvider;
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
     }
 
     async signInWithGoogle(idToken: string): Promise<IAuthResult> {
@@ -29,28 +34,38 @@ export default class AuthService implements IAuthService {
         }
 
         const user = await this.userRepository.upsertFromGoogle(profile);
-        const sessionToken = this.signSession(user);
+        const sessionToken = await this.issueToken(user);
 
         return { user, sessionToken };
     }
 
     async verifySession(sessionToken: string): Promise<IUserDocument | null> {
-        let payload: ISessionPayload;
+        const record = await this.tokenRepository.findByToken(sessionToken);
 
-        try {
-            payload = jwt.verify(sessionToken, config.sessionSecret) as ISessionPayload;
-        } catch {
+        if (!record || record.expiresAt.getTime() < Date.now()) {
             return null;
         }
 
-        return this.userRepository.findById(payload.sub);
+        return this.userRepository.findById(record.userId.toString());
     }
 
-    // jsonwebtoken's expiresIn takes seconds when given a number — config keeps
-    // the max-age in ms (matching the cookie's maxAge unit), so convert once here.
-    private signSession(user: IUserDocument): string {
-        return jwt.sign({ sub: user._id.toString() }, config.sessionSecret, {
-            expiresIn: Math.floor(config.sessionMaxAgeMs / 1000),
+    async logout(sessionToken: string): Promise<void> {
+        await this.tokenRepository.deleteByToken(sessionToken);
+    }
+
+    // A raw random string, not a JWT — the token only means anything by
+    // existing in the Token table, so a session can be revoked by deleting
+    // the row instead of just waiting out an expiry baked into the token.
+    private async issueToken(user: IUserDocument): Promise<string> {
+        const token = randomBytes(32).toString('hex');
+
+        await this.tokenRepository.create({
+            token,
+            userId: user._id,
+            expiresAt: new Date(Date.now() + config.sessionMaxAgeMs),
+            createdAt: new Date(),
         });
+
+        return token;
     }
 }

@@ -7,6 +7,9 @@ import DigestRepository from './repositories/digest/digestRepository.js';
 import TelegramChannelRepository from './repositories/telegram/telegramChannelRepository.js';
 import TelegramPostRepository from './repositories/telegram/telegramPostRepository.js';
 import UserRepository from './repositories/user/userRepository.js';
+import TokenRepository from './repositories/token/tokenRepository.js';
+import FeedSourceRepository from './repositories/feedSource/feedSourceRepository.js';
+import TelegramLinkCodeRepository from './repositories/telegramLinkCode/telegramLinkCodeRepository.js';
 
 export function createDatabaseContainer(container: AwilixContainer) {
     return container.register({
@@ -17,5 +20,8 @@ export function createDatabaseContainer(container: AwilixContainer) {
         telegramChannelRepository: asClass(TelegramChannelRepository).scoped(),
         telegramPostRepository: asClass(TelegramPostRepository).scoped(),
         userRepository: asClass(UserRepository).scoped(),
+        tokenRepository: asClass(TokenRepository).scoped(),
+        feedSourceRepository: asClass(FeedSourceRepository).scoped(),
+        telegramLinkCodeRepository: asClass(TelegramLinkCodeRepository).scoped(),
     });
 }

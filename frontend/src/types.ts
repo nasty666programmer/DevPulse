@@ -50,9 +50,23 @@ export type TelegramPostDto = {
   summary: string | null;
 };
 
+export type FeedSourceDto = {
+  id: string;
+  url: string;
+  /** ISO date string. */
+  addedAt: string;
+};
+
 export type AuthUserDto = {
   id: string;
   email: string;
   name: string;
   avatarUrl: string | null;
+  telegramLinked: boolean;
+};
+
+export type TelegramLinkCodeDto = {
+  code: string;
+  /** ISO date string. */
+  expiresAt: string;
 };

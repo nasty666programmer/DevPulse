@@ -8,6 +8,11 @@ const userSchema = new Schema<IUser>({
     avatarUrl: { type: String, default: null },
     createdAt: { type: Date, required: true },
     lastLoginAt: { type: Date, required: true },
+    // No `default: null` — Mongoose would then write it on every document,
+    // and a unique index over an always-present null collides on the second
+    // unlinked user. Sparse only excludes documents where the field is
+    // truly absent, which "no default" gives us.
+    telegramUserId: { type: Number, unique: true, sparse: true },
 });
 
 export default model<IUser>('User', userSchema);

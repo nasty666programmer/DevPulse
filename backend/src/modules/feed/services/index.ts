@@ -42,13 +42,16 @@ export default class FeedService {
         this.summarizerService = summarizerService;
     }
 
-    async getItem() {
-        const feedItem = await this.feedItemRepository.getOne();
+    async getItem(userId: string) {
+        const feedItem = await this.feedItemRepository.getOne(userId);
 
         return feedItem;
     }
 
-    async fetchFeedItems() {
+    // Dev/debug helper (GET /feed/fetch-item) — fetches the first configured
+    // source live and saves one item under the calling user, same as a real
+    // collection run would for them.
+    async fetchFeedItems(userId: string) {
         const feedItems = await this.rssCollectorService.fetchFeed(config.feedSources[0]);
         const firstItem = feedItems[0];
 
@@ -56,7 +59,7 @@ export default class FeedService {
             const parsedArticle = await this.htmlParserService.parseArticle(firstItem.link);
 
             if (parsedArticle) {
-                await this.saveFeedItem(parsedArticle);
+                await this.saveFeedItem(parsedArticle, userId);
             }
         }
 
@@ -69,8 +72,8 @@ export default class FeedService {
         return await Promise.allSettled(feeds);
     }
 
-    async listItems(limit: number, category?: Category) {
-        const items = await this.feedItemRepository.getAll(limit, category);
+    async listItems(userId: string, limit: number, category?: Category) {
+        const items = await this.feedItemRepository.getAll(userId, limit, category);
 
         return items.map(mapPopulatedFeedItem);
     }
@@ -78,12 +81,12 @@ export default class FeedService {
     // Throws FeedItemNotFoundError, FeedItemNotSummarizableError, or lets
     // SummarizerTimeoutError/SummarizerUnavailableError from the summarizer
     // propagate — the controller maps each to its HTTP status.
-    async summarizeItem(id: string): Promise<string> {
+    async summarizeItem(userId: string, id: string): Promise<string> {
         if (!Types.ObjectId.isValid(id)) {
             throw new FeedItemNotFoundError();
         }
 
-        const item = await this.feedItemRepository.findById(id);
+        const item = await this.feedItemRepository.findById(id, userId);
 
         if (!item) {
             throw new FeedItemNotFoundError();
@@ -104,30 +107,30 @@ export default class FeedService {
         return summary;
     }
 
-    async saveFeedItem(article: ParsedArticle) {
-        const existing = await this.rawArticleRepository.findByUrl(article.url);
+    async saveFeedItem(article: ParsedArticle, userId: string) {
+        let rawArticle = await this.rawArticleRepository.findByUrl(article.url);
 
-        if (existing) {
-            return;
+        if (!rawArticle) {
+            try {
+                rawArticle = await this.rawArticleRepository.create({
+                    title: article.title ?? 'Untitled',
+                    url: article.url,
+                    content: article.content,
+                    publishedAt: article.publishedAt,
+                    source: article.source,
+                });
+            } catch (error) {
+                if (isDuplicateKeyError(error)) {
+                    // Lost a race with another concurrent save inserting the same url.
+                    rawArticle = await this.rawArticleRepository.findByUrl(article.url);
+                } else {
+                    throw error;
+                }
+            }
         }
 
-        let rawArticle;
-
-        try {
-            rawArticle = await this.rawArticleRepository.create({
-                title: article.title ?? 'Untitled',
-                url: article.url,
-                content: article.content,
-                publishedAt: article.publishedAt,
-                source: article.source,
-            });
-        } catch (error) {
-            if (isDuplicateKeyError(error)) {
-                // Lost a race with another concurrent save inserting the same url.
-                return;
-            }
-
-            throw error;
+        if (!rawArticle) {
+            return;
         }
 
         const feedItem = {
@@ -135,12 +138,22 @@ export default class FeedService {
             content: article.content,
             date: article.publishedAt,
             rawArticleId: rawArticle._id,
+            userId: new Types.ObjectId(userId),
             category: this.categorizationService.categorize({
                 title: rawArticle.title,
                 content: article.content,
             }),
         };
 
-        await this.feedItemRepository.create(feedItem);
+        try {
+            await this.feedItemRepository.create(feedItem);
+        } catch (error) {
+            if (isDuplicateKeyError(error)) {
+                // This user already has a feedItem for this (shared) rawArticle.
+                return;
+            }
+
+            throw error;
+        }
     }
 }

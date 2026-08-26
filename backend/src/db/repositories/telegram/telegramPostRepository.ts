@@ -10,20 +10,21 @@ export default class TelegramPostRepository implements ITelegramPostRepository {
         return await TelegramPostModel.create(post);
     }
 
-    async findRecent(limit: number): Promise<ITelegramPostDocument[]> {
-        return await TelegramPostModel.find().sort({ publishedAt: -1 }).limit(limit);
+    async findRecent(userId: string, limit: number): Promise<ITelegramPostDocument[]> {
+        return await TelegramPostModel.find({ userId }).sort({ publishedAt: -1 }).limit(limit);
     }
 
     // One capped query per channel rather than a single global query — a
     // quiet channel would otherwise get crowded out of a shared limit by a
     // more active one on the same page.
     async findRecentByChannelIds(
+        userId: string,
         channelIds: number[],
         limitPerChannel: number
     ): Promise<ITelegramPostDocument[]> {
         const groups = await Promise.all(
             channelIds.map((channelId) =>
-                TelegramPostModel.find({ channelId })
+                TelegramPostModel.find({ userId, channelId })
                     .sort({ publishedAt: -1 })
                     .limit(limitPerChannel)
             )
@@ -32,8 +33,8 @@ export default class TelegramPostRepository implements ITelegramPostRepository {
         return groups.flat();
     }
 
-    async findById(id: string): Promise<ITelegramPostDocument | null> {
-        return await TelegramPostModel.findById(id);
+    async findById(id: string, userId: string): Promise<ITelegramPostDocument | null> {
+        return await TelegramPostModel.findOne({ _id: id, userId });
     }
 
     async setSummary(id: string, summary: string): Promise<void> {

@@ -10,12 +10,12 @@ export interface IFeedItemCreator {
 }
 
 export interface IFeedItemCategoryReader {
-    getRecentByCategory(category: Category, limit: number): Promise<IPopulatedFeedItem[]>;
+    getRecentByCategory(userId: string, category: Category, limit: number): Promise<IPopulatedFeedItem[]>;
 }
 
 export interface IFeedItemRepository extends IFeedItemCreator, IFeedItemCategoryReader {
-    getOne(): Promise<IFeedItemDocument | null>;
-    getAll(limit: number, category?: Category): Promise<IPopulatedFeedItem[]>;
-    findById(id: string): Promise<IFeedItemDocument | null>;
+    getOne(userId: string): Promise<IFeedItemDocument | null>;
+    getAll(userId: string, limit: number, category?: Category): Promise<IPopulatedFeedItem[]>;
+    findById(id: string, userId: string): Promise<IFeedItemDocument | null>;
     setSummary(id: string, summary: string): Promise<void>;
 }

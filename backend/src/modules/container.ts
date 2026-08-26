@@ -11,6 +11,8 @@ import TelegramCollectorService from './telegramCollector/services/index.js';
 import TelegramSchedulerService from './telegramScheduler/index.js';
 import AuthService from './auth/services/index.js';
 import SummarizerService from './summarizer/services/index.js';
+import FeedSourceService from './feedSource/services/index.js';
+import TelegramLinkService from './telegramLink/services/index.js';
 
 export function createServicesContainer(container: AwilixContainer) {
     return container.register({
@@ -25,5 +27,7 @@ export function createServicesContainer(container: AwilixContainer) {
         telegramSchedulerService: asClass(TelegramSchedulerService).scoped(),
         authService: asClass(AuthService).scoped(),
         summarizerService: asClass(SummarizerService).scoped(),
+        feedSourceService: asClass(FeedSourceService).scoped(),
+        telegramLinkService: asClass(TelegramLinkService).scoped(),
     });
 }

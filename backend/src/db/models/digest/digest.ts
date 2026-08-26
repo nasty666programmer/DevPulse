@@ -15,11 +15,12 @@ const digestArticleSchema = new Schema(
     { _id: false }
 );
 
-// Singleton — a snapshot of "the current digest", not a per-day archive. Always
-// exactly one document, replaced wholesale on every regeneration (either the
-// automatic one after RSS collection, or the manual "Обновить дайджест" button).
-// See DigestRepository.save.
+// One per user — a snapshot of "the current digest" for that user, not a
+// per-day archive. Replaced wholesale on every regeneration for that user
+// (either the automatic one after RSS collection, or the manual "Обновить
+// дайджест" button). See DigestRepository.save.
 const digestSchema = new Schema<IDigest>({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     generatedAt: { type: Date, required: true },
     articles: { type: [digestArticleSchema], default: [] },
 });
